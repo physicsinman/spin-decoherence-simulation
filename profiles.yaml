@@ -1,0 +1,94 @@
+# Material parameter profiles for spin decoherence simulation
+
+materials:
+  
+  Si_P:
+    name: "Silicon-28 (³¹P-doped)"
+    description: "Nearly nuclear-spin-free, charge noise limited"
+    
+    # Physics parameters
+    gamma_e: 1.76e11  # rad/(s·T), electron gyromagnetic ratio
+    T1: 10000.0e-6    # seconds, spin-flip time (very long)
+    
+    # Single OU noise model
+    OU:
+      B_rms: 0.5e-6   # Tesla, RMS magnetic field fluctuation
+      tau_c_min: 10.0e-6    # seconds
+      tau_c_max: 1000.0e-6  # seconds
+      tau_c_num: 15
+      notes: "Charge noise from surface/interface"
+    
+    # Double OU noise model (two timescales)
+    Double_OU:
+      # Fast component (residual hyperfine from 29Si, 4.7%)
+      B_rms1: 0.3e-6    # Tesla
+      tau_c1: 5.0e-6    # seconds (fixed, ~5 μs)
+      
+      # Slow component (charge noise)
+      B_rms2: 0.4e-6    # Tesla
+      tau_c2_min: 50.0e-6   # seconds
+      tau_c2_max: 500.0e-6  # seconds
+      tau_c2_num: 10
+      
+      notes: "Fast: residual hyperfine, Slow: charge fluctuations"
+    
+    # Simulation parameters
+    T_max: 5000.0e-6  # seconds, max simulation time (5 ms)
+    dt: 1.0e-9        # seconds, time step (1 ns)
+    M: 1000           # ensemble size
+    seed: 42
+    
+    # Literature references
+    references:
+      - "Kane, B. E. (1998). Nature 393, 133-137"
+      - "Morello et al. (2010). Nature 467, 687-691"
+      - "Tyryshkin et al. (2012). Nature Materials 11, 143-147"
+    
+    # Expected T2 range from experiments
+    expected_T2_range: [1.0e-3, 10.0e-3]  # 1-10 ms
+  
+  GaAs:
+    name: "GaAs Self-Assembled Quantum Dot"
+    description: "Hyperfine interaction dominated (75As, 69Ga, 71Ga)"
+    
+    # Physics parameters
+    gamma_e: 1.76e11  # rad/(s·T)
+    T1: 100.0e-6      # seconds, ~100 μs
+    
+    # Single OU noise model
+    OU:
+      B_rms: 5.0e-6     # Tesla, Overhauser field fluctuation
+      tau_c_min: 0.01e-6    # seconds (10 ns)
+      tau_c_max: 10.0e-6    # seconds (10 μs)
+      tau_c_num: 20
+      notes: "Nuclear spin flip-flop dynamics"
+    
+    # Double OU noise model
+    Double_OU:
+      # Fast component (nearby nuclei, strong coupling)
+      B_rms1: 4.0e-6    # Tesla
+      tau_c1: 0.05e-6   # seconds (50 ns, fixed)
+      
+      # Slow component (distant nuclei, weak coupling)
+      B_rms2: 3.0e-6    # Tesla
+      tau_c2_min: 0.5e-6    # seconds
+      tau_c2_max: 5.0e-6    # seconds
+      tau_c2_num: 8
+      
+      notes: "Fast: near nuclei, Slow: far nuclei"
+    
+    # Simulation parameters
+    T_max: 50.0e-6    # seconds (50 μs)
+    dt: 0.2e-9        # seconds (0.2 ns)
+    M: 1000
+    seed: 42
+    
+    # Literature references
+    references:
+      - "Loss & DiVincenzo (1998). Phys. Rev. B 57, 120"
+      - "Petta et al. (2005). Science 309, 2180-2184"
+      - "Bluhm et al. (2010). Nature Physics 7, 109-113"
+    
+    # Expected T2 range from experiments
+    expected_T2_range: [1.0e-6, 10.0e-6]  # 1-10 μs
+
