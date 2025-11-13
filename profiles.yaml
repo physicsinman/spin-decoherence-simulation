@@ -1,4 +1,5 @@
 # Material parameter profiles for spin decoherence simulation
+# RECOMMENDED BALANCED SETTINGS for memory-efficient simulation
 
 materials:
   
@@ -12,30 +13,30 @@ materials:
     
     # Single OU noise model
     OU:
-      B_rms: 0.5e-6   # Tesla, RMS magnetic field fluctuation
-      tau_c_min: 10.0e-6    # seconds
-      tau_c_max: 1000.0e-6  # seconds
-      tau_c_num: 15
+      B_rms: 5.0e-6   # Tesla, RMS magnetic field fluctuation
+      tau_c_min: 0.1e-6    # seconds (avoid extreme MN regime)
+      tau_c_max: 100.0e-6  # seconds
+      tau_c_num: 25        # Sufficient data points
       notes: "Charge noise from surface/interface"
     
     # Double OU noise model (two timescales)
     Double_OU:
       # Fast component (residual hyperfine from 29Si, 4.7%)
-      B_rms1: 0.3e-6    # Tesla
-      tau_c1: 5.0e-6    # seconds (fixed, ~5 μs)
+      B_rms1: 3.5e-6    # Tesla
+      tau_c1: 0.05e-6   # seconds (fixed, ~50 ns)
       
       # Slow component (charge noise)
-      B_rms2: 0.4e-6    # Tesla
-      tau_c2_min: 50.0e-6   # seconds
-      tau_c2_max: 500.0e-6  # seconds
-      tau_c2_num: 10
+      B_rms2: 3.5e-6    # Tesla
+      tau_c2_min: 0.5e-6   # seconds
+      tau_c2_max: 50.0e-6  # seconds (reduced range)
+      tau_c2_num: 25       # Sufficient data points
       
       notes: "Fast: residual hyperfine, Slow: charge fluctuations"
     
     # Simulation parameters
-    T_max: 5000.0e-6  # seconds, max simulation time (5 ms)
-    dt: 1.0e-9        # seconds, time step (1 ns)
-    M: 1000           # ensemble size
+    T_max: 30.0e-6  # seconds, max simulation time (30 μs)
+    dt: 0.2e-9      # seconds, time step (0.2 ns)
+    M: 750          # ensemble size (balanced for memory)
     seed: 42
     
     # Literature references
@@ -57,31 +58,31 @@ materials:
     
     # Single OU noise model
     OU:
-      B_rms: 5.0e-6     # Tesla, Overhauser field fluctuation
-      tau_c_min: 0.01e-6    # seconds (10 ns)
+      B_rms: 8.0e-6     # Tesla, Overhauser field fluctuation
+      tau_c_min: 0.1e-6    # seconds (avoid extreme MN regime)
       tau_c_max: 10.0e-6    # seconds (10 μs)
-      tau_c_num: 20
+      tau_c_num: 25        # Sufficient data points
       notes: "Nuclear spin flip-flop dynamics"
     
     # Double OU noise model
     Double_OU:
       # Fast component (nearby nuclei, strong coupling)
-      B_rms1: 4.0e-6    # Tesla
+      B_rms1: 5.7e-6    # Tesla
       tau_c1: 0.05e-6   # seconds (50 ns, fixed)
       
       # Slow component (distant nuclei, weak coupling)
-      B_rms2: 3.0e-6    # Tesla
+      B_rms2: 5.7e-6    # Tesla
       tau_c2_min: 0.5e-6    # seconds
-      tau_c2_max: 5.0e-6    # seconds
-      tau_c2_num: 8
+      tau_c2_max: 10.0e-6   # seconds
+      tau_c2_num: 25        # Sufficient data points
       
       notes: "Fast: near nuclei, Slow: far nuclei"
     
     # Simulation parameters
-    T_max: 50.0e-6    # seconds (50 μs)
+    T_max: 30.0e-6    # seconds (30 μs)
     dt: 0.2e-9        # seconds (0.2 ns)
-    M: 1000
-    seed: 42
+    M: 750            # ensemble size (balanced for memory)
+    seed: 43
     
     # Literature references
     references:
@@ -91,4 +92,3 @@ materials:
     
     # Expected T2 range from experiments
     expected_T2_range: [1.0e-6, 10.0e-6]  # 1-10 μs
-

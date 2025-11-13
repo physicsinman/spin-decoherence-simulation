@@ -15,12 +15,16 @@ This repository contains the numerical simulation code for studying spin decoher
 3. [Installation](#installation)
 4. [Usage](#usage)
 5. [Theoretical Background](#theoretical-background)
-6. [Simulation Methods](#simulation-methods)
-7. [Results Analysis](#results-analysis)
-8. [Hahn Echo Implementation](#hahn-echo-implementation)
-9. [Technical Details](#technical-details)
-10. [Paper Writing Guide](#paper-writing-guide)
-11. [References](#references)
+6. [Mathematical Implementation Details](#mathematical-implementation-details)
+7. [Simulation Methods](#simulation-methods)
+8. [Results Analysis](#results-analysis)
+9. [Hahn Echo Implementation](#hahn-echo-implementation)
+10. [Technical Details](#technical-details)
+11. [Recent Improvements](#recent-improvements)
+12. [Future Improvements](#future-improvements)
+13. [Paper Writing Guide](#paper-writing-guide)
+14. [Testing](#testing)
+15. [References](#references)
 
 ---
 
@@ -217,6 +221,249 @@ $$\xi = \gamma_e B_{\text{rms}} \tau_c$$
 $$E(t) = \exp\left[-\Delta\omega^2 \tau_c^2 \left(e^{-t/\tau_c} + \frac{t}{\tau_c} - 1\right)\right]$$
 
 where $\Delta\omega = \gamma_e B_{\text{rms}}$.
+
+---
+
+## Mathematical Implementation Details
+
+### OU Noise Generation (Numerical Simulation)
+
+#### Continuous-Time OU Process
+
+The OU process is defined by the stochastic differential equation (SDE):
+
+```
+dδB(t) = -(1/τ_c) · δB(t) · dt + σ · dW(t)
+```
+
+where:
+- `δB(t)`: Magnetic field fluctuation at time t (Tesla)
+- `τ_c`: Correlation time (seconds)
+- `σ`: Noise strength
+- `dW(t)`: Wiener process
+
+#### Discretization: AR(1) Recursive Relation
+
+Discretizing the continuous-time process yields an **AR(1) (Autoregressive order 1)** model:
+
+```
+δB_{k+1} = ρ · δB_k + σ_η · η_k
+```
+
+where:
+- `k`: Time step index (t_k = k·dt)
+- `ρ = exp(-dt/τ_c)`: Autoregressive coefficient
+- `σ_η = B_rms · √(1 - ρ²)`: Noise scaling factor
+- `η_k ~ N(0,1)`: Standard normal random variable
+- `B_rms`: RMS amplitude of the stationary distribution
+
+#### Code Implementation
+
+**File**: `spin_decoherence/noise/ou.py`
+
+```python
+# 1. Parameter calculation
+rho = np.exp(-dt / tau_c)                    # ρ = exp(-dt/τ_c)
+sigma = B_rms * np.sqrt(1.0 - rho**2)        # σ_η = B_rms·√(1-ρ²)
+
+# 2. Initial value (sampled from stationary distribution)
+delta_B[0] = rng.normal(0.0, B_rms)          # δB(0) ~ N(0, B_rms²)
+
+# 3. AR(1) recursion
+for k in range(N_steps - 1):
+    delta_B[k + 1] = rho * delta_B[k] + sigma * eta[k]
+```
+
+#### Mathematical Derivation
+
+**Stationary distribution condition**:
+- Mean: E[δB] = 0
+- Variance: Var[δB] = B_rms²
+
+To preserve stationary variance in the AR(1) model:
+```
+Var[δB_{k+1}] = ρ² · Var[δB_k] + σ_η² = B_rms²
+```
+
+In the stationary state, Var[δB_k] = B_rms², so:
+```
+B_rms² = ρ² · B_rms² + σ_η²
+σ_η² = B_rms² · (1 - ρ²)
+σ_η = B_rms · √(1 - ρ²)
+```
+
+**Correlation function**:
+```
+E[δB(t) · δB(t+τ)] = B_rms² · exp(-|τ|/τ_c)
+```
+
+In discrete time:
+```
+E[δB_k · δB_{k+n}] = B_rms² · ρ^n = B_rms² · exp(-n·dt/τ_c)
+```
+
+### Analytical Solutions
+
+#### FID (Free Induction Decay) Coherence
+
+Using the **cumulant expansion** method, the exact solution is:
+
+```
+E(t) = exp[-χ(t)]
+```
+
+where the **decay function** χ(t) is:
+
+```
+χ(t) = Δω² · τ_c² · [exp(-t/τ_c) + t/τ_c - 1]
+```
+
+where:
+- `Δω = γ_e · B_rms`: RMS frequency fluctuation (rad/s)
+- `γ_e`: Electron gyromagnetic ratio
+
+**File**: `spin_decoherence/physics/analytical.py`
+
+```python
+def analytical_ou_coherence(t, gamma_e, B_rms, tau_c):
+    Delta_omega = gamma_e * B_rms
+    Delta_omega_sq = Delta_omega**2
+    tau_c_sq = tau_c**2
+    
+    # Cumulant expansion result
+    chi = Delta_omega_sq * tau_c_sq * (
+        np.exp(-t / tau_c) + t / tau_c - 1.0
+    )
+    
+    E = np.exp(-chi)
+    return E
+```
+
+#### Hahn Echo Coherence
+
+For Hahn echo experiments (π pulse applied at t=τ):
+
+```
+χ_echo(2τ) = Δω² · τ_c² · [2τ/τ_c - 3 + 4·exp(-τ/τ_c) - exp(-2τ/τ_c)]
+E_echo(2τ) = exp[-χ_echo(2τ)]
+```
+
+**Implementation**:
+```python
+def analytical_hahn_echo_coherence(tau_list, gamma_e, B_rms, tau_c):
+    Delta_omega_sq = (gamma_e * B_rms)**2
+    tau_c_sq = tau_c**2
+    
+    chi_echo = Delta_omega_sq * tau_c_sq * (
+        2 * tau_list / tau_c - 3 + 
+        4 * np.exp(-tau_list / tau_c) - 
+        np.exp(-2 * tau_list / tau_c)
+    )
+    
+    E_echo = np.exp(-chi_echo)
+    return E_echo
+```
+
+#### Motional Narrowing Regime
+
+In the fast noise limit (τ_c << T_2):
+
+```
+T_2 = 1 / (Δω² · τ_c) = 1 / [(γ_e · B_rms)² · τ_c]
+```
+
+### Phase Accumulation
+
+#### Numerical Integration
+
+From the generated OU noise, the phase is calculated:
+
+```
+φ(t) = ∫₀^t γ_e · δB(t') dt'
+```
+
+In discrete time, using trapezoidal or rectangular approximation:
+
+```
+φ[k] = Σᵢ₌₀ᵏ⁻¹ γ_e · δB[i] · dt
+```
+
+**File**: `spin_decoherence/physics/phase.py`
+
+```python
+def compute_phase_accumulation(delta_B, gamma_e, dt):
+    delta_omega = gamma_e * delta_B
+    phi = np.zeros(len(delta_omega))
+    phi[1:] = np.cumsum(delta_omega[:-1] * dt)
+    return phi
+```
+
+#### Coherence Function
+
+The coherence is calculated from the phase:
+
+```
+E(t) = ⟨exp(i·φ(t))⟩
+```
+
+where `⟨·⟩` denotes the average over many noise realizations.
+
+### Complete Simulation Flow
+
+```
+1. OU noise generation
+   δB(t) ← AR(1) recursion: δB_{k+1} = ρ·δB_k + σ_η·η_k
+
+2. Phase accumulation
+   φ(t) = ∫₀^t γ_e·δB(t') dt' ≈ Σᵢ γ_e·δB[i]·dt
+
+3. Coherence calculation
+   E_traj(t) = exp(i·φ(t))  (single realization)
+   E(t) = ⟨E_traj(t)⟩       (average over realizations)
+
+4. Comparison with analytical solution
+   E_analytical(t) = exp[-Δω²τ_c²(e^(-t/τ_c) + t/τ_c - 1)]
+```
+
+### Numerical Stability Considerations
+
+#### Time Step Constraint
+
+```
+dt << τ_c  (generally dt < τ_c/5 recommended)
+```
+
+Too large `dt` reduces the accuracy of the AR(1) approximation.
+
+#### Burn-in Period
+
+A burn-in period is used to reach the stationary distribution:
+
+```
+burn_in = 5 · τ_c / dt
+```
+
+Even if the initial value is sampled from the stationary distribution, burn-in removes transient effects.
+
+#### Numerical Underflow Prevention
+
+For large `t`, `χ(t)` can become very large, so:
+
+```python
+chi_clipped = np.clip(chi, 0.0, 700.0)  # exp(-700) ≈ 10^-304
+E = np.exp(-chi_clipped)
+```
+
+### Key Formulas Summary
+
+| Formula | Description |
+|---------|-------------|
+| `ρ = exp(-dt/τ_c)` | AR(1) autoregressive coefficient |
+| `σ_η = B_rms·√(1-ρ²)` | Noise scaling |
+| `δB_{k+1} = ρ·δB_k + σ_η·η_k` | AR(1) recursion |
+| `χ(t) = Δω²τ_c²[e^(-t/τ_c) + t/τ_c - 1]` | FID decay function |
+| `E(t) = exp[-χ(t)]` | FID coherence |
+| `T_2 = 1/(Δω²τ_c)` | Motional narrowing T_2 |
 
 ---
 
@@ -460,6 +707,183 @@ from spin_decoherence.analysis import fit_coherence_decay
 
 ---
 
+## Recent Improvements
+
+### Phase 2: Regime-Aware Bootstrap Implementation ✅
+
+#### 1. Regime-Aware Bootstrap
+- **File**: `regime_aware_bootstrap.py`
+- **Functionality**: Uses different bootstrap strategies based on regime
+  - **QS (Quasi-static, ξ > 2.0)**: Uses analytical CI (prevents bootstrap failure)
+  - **MN (Motional narrowing, ξ < 0.2)**: Standard bootstrap (stable)
+  - **Crossover (0.2 ≤ ξ ≤ 2.0)**: Conservative bootstrap (more samples)
+
+#### 2. Analytical CI for Static Limit
+- **Function**: `analytical_ci_static()`
+- **Physics**: T2 = 2 / sqrt(2π S(0))
+- **Error propagation**: dT2/dS0 = -1 / (2π S(0))^(3/2)
+- **Usage**: Automatic fallback when bootstrap fails in static regime
+
+#### 3. Analytical CI for Motional Narrowing Limit
+- **Function**: `analytical_ci_motional()`
+- **Physics**: T2 = 1 / (Δω² τ_c)
+- **Error propagation**: dT2/dτ_c = -1 / (Δω² τ_c²)
+- **Usage**: Fallback when bootstrap fails in motional narrowing regime
+
+#### 4. Integration Complete
+- **File**: `simulate_materials.py`
+- **Changes**: All bootstrap calls replaced with `regime_aware_bootstrap_T2()`
+  - Single-OU FID
+  - Single-OU Hahn Echo
+  - Double-OU FID
+  - Double-OU Hahn Echo
+
+#### Test Results
+
+```
+✓ Regime classification test passed
+✓ Analytical CI (static) test passed
+✓ Analytical CI (motional) test passed
+✓ Regime-aware bootstrap test passed
+```
+
+#### Usage
+
+**Automatic (Recommended)**:
+Existing code automatically uses regime-aware bootstrap:
+```python
+from simulate_materials import run_single_case
+result = run_single_case('Si_P', profile, 'OU', 'FID')
+# CI is automatically calculated based on regime
+```
+
+**Manual**:
+```python
+from regime_aware_bootstrap import regime_aware_bootstrap_T2
+
+T2_mean, T2_ci, T2_samples, method = regime_aware_bootstrap_T2(
+    t, E_abs_all, E_se=E_se, B=500,
+    tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms,
+    use_analytical_ci=True
+)
+
+print(f"Method used: {method}")  # 'analytical_static', 'bootstrap', etc.
+```
+
+#### Expected Effects
+
+1. **Static regime CI recovery**: Previously None CI values now calculated using analytical method
+2. **Quantitative analysis possible**: CI provided for all regimes
+3. **Improved reliability**: Optimal strategy used for each regime
+
+#### CI Method Tracking
+
+Each fit_result has a `ci_method` field added to track which method was used:
+- `'analytical_static'`: Static limit analytical CI
+- `'analytical_motional'`: Motional narrowing analytical CI
+- `'bootstrap'`: Standard bootstrap
+- `'failed'`: CI calculation failed
+
+#### Notes
+
+1. **Analytical CI is approximate**: Uses error propagation, so may be more conservative than actual uncertainty
+2. **S(0) uncertainty**: Default is 5% relative uncertainty (more accurate if actual value is available)
+3. **Double-OU**: Uses effective parameters (τ_c_eff, B_rms_eff)
+
+#### Status
+
+Phase 2 complete:
+- ✅ Static regime CI recovery
+- ✅ Motional narrowing CI improvement
+- ✅ Crossover region stability improvement
+
+**Phase 3 (Optional)**: Hahn Echo CI improvement, Double-OU bootstrap implementation
+
+---
+
+## Future Improvements
+
+### Material Comparison Simulation Improvements
+
+#### Current Issues
+
+1. **Insufficient Statistical Reliability**
+   - ✅ **Problem**: Few data points
+     - Si:P OU: 15 points
+     - Si:P Double-OU: 10 points
+     - GaAs OU: 20 points
+     - GaAs Double-OU: 8 points
+   - ✅ **Solution**: Increase `tau_c_num` in `profiles.yaml`
+     - Si:P OU: 15 → 25
+     - Si:P Double-OU: 10 → 20
+     - GaAs OU: 20 → 30
+     - GaAs Double-OU: 8 → 15
+
+2. **Missing Error Bars**
+   - ✅ **Problem**: Bootstrap CI not calculated
+     - `bootstrap_T2` not called in `simulate_materials.py`
+     - `E_abs_all` not saved (for memory efficiency)
+   - ✅ **Solution**: 
+     - Change `compute_ensemble_coherence` to `use_online=False`
+     - Add `bootstrap_T2` call after each simulation
+
+3. **Non-reproducible**
+   - ✅ **Problem**: Double-OU parameters unclear
+   - ✅ **Solution**: All parameters explicitly stated in `profiles.yaml` (already done)
+     - `tau_c1`, `B_rms1`, `tau_c2_min`, `tau_c2_max`, `B_rms2` all specified
+
+4. **Unfair Comparison**
+   - ✅ **Problem**: Different τ_c ranges for Si:P and GaAs
+     - Si:P: 10-1000 μs
+     - GaAs: 0.01-10 μs
+   - ✅ **Solution**: 
+     - **Option 1**: Dimensionless comparison (ξ = γ_e * B_rms * τ_c)
+     - **Option 2**: Maintain ranges appropriate for each material, but clearly distinguish in interpretation
+
+5. **No Theoretical Comparison**
+   - ✅ **Problem**: Not compared with theoretical predictions
+   - ✅ **Solution**: Add theoretical curves to `analyze_results.py`
+     - OU noise: use `analytical_ou_coherence`
+     - Echo: use `analytical_hahn_echo_coherence`
+
+6. **Insufficient Validation**
+   - ✅ **Problem**: Noise generation not validated
+   - ✅ **Solution**: 
+     - OU noise autocorrelation check
+     - PSD verification (already exists)
+
+### Improvement Checklist
+
+#### Phase 1: Immediate Fixes (30 minutes)
+- [ ] Increase `tau_c_num` in `profiles.yaml`
+- [ ] Add bootstrap CI to `simulate_materials.py`
+- [ ] Modify to save `E_abs_all`
+
+#### Phase 2: Re-simulation (2-3 hours)
+- [ ] Re-run full simulation
+- [ ] Generate plots with error bars
+- [ ] Add theoretical curves
+
+#### Phase 3: Validation and Analysis (1 hour)
+- [ ] Generate noise validation plots
+- [ ] Add dimensionless collapse plot
+- [ ] Regime analysis (calculate and display ξ values)
+
+### Estimated Time
+
+- **Minimum improvement** (Phase 1 only): 30 minutes
+- **Recommended improvement** (Phase 1-2): 3-4 hours
+- **Complete improvement** (Phase 1-3): 4-5 hours
+
+### Priority
+
+1. **High**: Add bootstrap CI (statistical reliability)
+2. **High**: Increase data points (better curves)
+3. **Medium**: Add theoretical curves (physical interpretation)
+4. **Low**: Dimensionless comparison (useful for paper but not essential)
+
+---
+
 ## Paper Writing Guide
 
 ### Abstract Example
@@ -579,6 +1003,102 @@ All simulation parameters, random seeds, and fit results are logged in the JSON 
 
 ---
 
+## Testing
+
+This directory contains comprehensive tests for the simulation codebase.
+
+### Test Structure
+
+- `test_ornstein_uhlenbeck.py`: OU noise generation tests
+- `test_coherence.py`: Phase accumulation and coherence function tests
+- `test_noise_models.py`: Double-OU noise model tests
+- `test_config.py`: Configuration validation tests
+- `test_units.py`: Unit conversion helper tests
+
+### Running Tests
+
+**Run all tests**:
+```bash
+pytest tests/ -v
+```
+
+**Run specific test file**:
+```bash
+pytest tests/test_coherence.py -v
+```
+
+**Run specific test class**:
+```bash
+pytest tests/test_coherence.py::TestPhaseAccumulation -v
+```
+
+**Run specific test function**:
+```bash
+pytest tests/test_coherence.py::TestPhaseAccumulation::test_initial_condition -v
+```
+
+**Skip slow tests**:
+```bash
+pytest tests/ -v -m "not slow"
+```
+
+**Run only fast tests**:
+```bash
+pytest tests/ -v -m "not slow"
+```
+
+### Test Coverage
+
+**Generate coverage report**:
+```bash
+pytest tests/ --cov=. --cov-report=html
+```
+
+This generates an HTML report in `htmlcov/index.html`.
+
+### Coverage Goals
+- Unit tests: 80%+ coverage
+- Integration tests: All major workflows
+- Regression tests: Known bugs
+
+### Test Categories
+
+**Unit Tests**:
+Fast, isolated tests for individual functions:
+- `test_ornstein_uhlenbeck.py`
+- `test_units.py`
+- `test_config.py`
+
+**Integration Tests**:
+Tests for component interactions:
+- `test_coherence.py` (ensemble coherence)
+- `test_noise_models.py` (Double-OU)
+
+**Regression Tests**:
+Tests that prevent known bugs from reoccurring:
+- All error handling tests
+- Statistical property validation
+
+### Markers
+
+Tests are marked with:
+- `@pytest.mark.slow`: Slow tests (skip with `-m "not slow"`)
+- `@pytest.mark.integration`: Integration tests
+- `@pytest.mark.regression`: Regression tests
+- `@pytest.mark.unit`: Unit tests
+
+### Continuous Integration
+
+Tests can be integrated into CI/CD pipelines:
+
+```yaml
+# Example GitHub Actions
+- name: Run tests
+  run: pytest tests/ -v --cov=. --cov-report=xml
+```
+
+---
+
 ## References
 
 ### Key Papers
@@ -597,17 +1117,6 @@ All simulation parameters, random seeds, and fit results are logged in the JSON 
 4. **Filter-Function Formalism**:
    - Cywiński et al. (2008)
    - Biercuk et al. (2011)
-
----
-
-## Testing
-
-See `tests/README.md` for detailed testing instructions.
-
-Run all tests:
-```bash
-pytest tests/ -v
-```
 
 ---
 

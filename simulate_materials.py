@@ -21,10 +21,10 @@ from coherence import (compute_ensemble_coherence,
                        compute_hahn_echo_coherence,
                        compute_ensemble_coherence_double_OU,
                        compute_hahn_echo_coherence_double_OU,
-                       compute_phase_accumulation,
-                       GAMMA_E)
+                       compute_phase_accumulation)
 from fitting import fit_coherence_decay_with_offset, bootstrap_T2
 from simulate import get_dimensionless_tau_range
+from config import CONSTANTS
 
 
 def load_profiles(yaml_file='profiles.yaml'):
@@ -73,11 +73,11 @@ def run_single_case(material_name, profile, noise_model,
         print(f"{'='*60}")
     
     # Extract common parameters
-    gamma_e = profile['gamma_e']
-    T_max = profile['T_max']
-    dt = profile['dt']
-    M = profile['M']
-    seed = profile['seed']
+    gamma_e = float(profile['gamma_e'])
+    T_max = float(profile['T_max'])
+    dt = float(profile['dt'])
+    M = int(profile['M'])
+    seed = int(profile['seed'])
     B_0 = 0.0  # Pure dephasing (no static field)
     
     # Initialize results storage
@@ -111,9 +111,11 @@ def run_single_case(material_name, profile, noise_model,
             
             # Compute coherence
             if sequence_type == 'FID':
+                # Use use_online=False to get E_abs_all for bootstrap CI
                 E, E_abs, E_se, t_out, E_abs_all = compute_ensemble_coherence(
-                    tau_c, B_rms, B_0, gamma_e, dt, T_max, M, 
-                    seed=seed+i, progress=verbose and i == 0
+                    tau_c, B_rms, gamma_e, dt, T_max, M, 
+                    seed=seed+i, progress=verbose and i == 0,
+                    use_online=False  # Need full trajectories for bootstrap
                 )
                 
                 # Fit and extract T₂
@@ -122,10 +124,42 @@ def run_single_case(material_name, profile, noise_model,
                     tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms, M=M
                 )
                 
+                # Compute bootstrap CI if we have trajectories
+                # Use regime-aware bootstrap (Phase 2 improvement)
+                T2_lower = None
+                T2_upper = None
+                if fit_result and len(E_abs_all) > 0 and E_abs_all.shape[0] > 0:
+                    try:
+                        from regime_aware_bootstrap import regime_aware_bootstrap_T2
+                        T2_mean, T2_ci, _, method = regime_aware_bootstrap_T2(
+                            t_out, E_abs_all, E_se=E_se, B=500, verbose=False,
+                            tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms,
+                            use_analytical_ci=True
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                            fit_result['ci_method'] = method  # Store method used
+                    except ImportError:
+                        # Fallback to standard bootstrap if regime-aware not available
+                        from fitting import bootstrap_T2
+                        xi = gamma_e * B_rms * tau_c
+                        n_bootstrap = 150 if xi < 0.3 else 200
+                        T2_mean, T2_ci, _ = bootstrap_T2(
+                            t_out, E_abs_all, E_se=E_se, B=n_bootstrap, verbose=False,
+                            tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                
                 if fit_result:
                     T2 = fit_result['T2']
-                    T2_lower = fit_result.get('T2_ci', [None, None])[0]
-                    T2_upper = fit_result.get('T2_ci', [None, None])[1]
+                    # Use bootstrap CI if available, otherwise try to get from fit_result
+                    if T2_lower is None:
+                        T2_lower = fit_result.get('T2_ci', [None, None])[0]
+                    if T2_upper is None:
+                        T2_upper = fit_result.get('T2_ci', [None, None])[1]
                     beta = fit_result.get('beta', None)
                     model = fit_result.get('model', None)
                 else:
@@ -163,7 +197,7 @@ def run_single_case(material_name, profile, noise_model,
                 
                 # Compute echo coherence
                 tau_echo, E_echo, E_echo_abs, E_echo_se, E_echo_abs_all = compute_hahn_echo_coherence(
-                    tau_c, B_rms, B_0, gamma_e, dt, tau_list,
+                    tau_c, B_rms, gamma_e, dt, tau_list,
                     M, seed=seed+i, progress=verbose and i == 0
                 )
                 
@@ -173,10 +207,41 @@ def run_single_case(material_name, profile, noise_model,
                     tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms, M=M
                 )
                 
+                # Compute bootstrap CI if we have trajectories
+                # Use regime-aware bootstrap (Phase 2 improvement)
+                T2_lower = None
+                T2_upper = None
+                if fit_result and len(E_echo_abs_all) > 0 and E_echo_abs_all.shape[0] > 0:
+                    try:
+                        from regime_aware_bootstrap import regime_aware_bootstrap_T2
+                        T2_mean, T2_ci, _, method = regime_aware_bootstrap_T2(
+                            tau_echo, E_echo_abs_all, E_se=E_echo_se, B=500, verbose=False,
+                            tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms,
+                            use_analytical_ci=True
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                            fit_result['ci_method'] = method
+                    except ImportError:
+                        from fitting import bootstrap_T2
+                        xi = gamma_e * B_rms * tau_c
+                        n_bootstrap = 150 if xi < 0.3 else 200
+                        T2_mean, T2_ci, _ = bootstrap_T2(
+                            tau_echo, E_echo_abs_all, E_se=E_echo_se, B=n_bootstrap, verbose=False,
+                            tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                
                 if fit_result:
                     T2 = fit_result['T2']
-                    T2_lower = fit_result.get('T2_ci', [None, None])[0]
-                    T2_upper = fit_result.get('T2_ci', [None, None])[1]
+                    # Use bootstrap CI if available, otherwise try to get from fit_result
+                    if T2_lower is None:
+                        T2_lower = fit_result.get('T2_ci', [None, None])[0]
+                    if T2_upper is None:
+                        T2_upper = fit_result.get('T2_ci', [None, None])[1]
                     beta = fit_result.get('beta', None)
                     model = fit_result.get('model', None)
                 else:
@@ -232,9 +297,11 @@ def run_single_case(material_name, profile, noise_model,
             
             # Compute coherence
             if sequence_type == 'FID':
+                # Use use_online=False to get E_abs_all for bootstrap CI
                 E, E_abs, E_se, t_out, E_abs_all = compute_ensemble_coherence_double_OU(
-                    tau_c1, tau_c2, B_rms1, B_rms2, B_0, gamma_e, dt, T_max, M,
-                    seed=seed+i, progress=verbose and i == 0
+                    tau_c1, tau_c2, B_rms1, B_rms2, gamma_e, dt, T_max, M,
+                    seed=seed+i, progress=verbose and i == 0,
+                    use_online=False  # Need full trajectories for bootstrap
                 )
                 
                 # Fit and extract T₂
@@ -247,10 +314,41 @@ def run_single_case(material_name, profile, noise_model,
                     tau_c=tau_c_eff, gamma_e=gamma_e, B_rms=B_rms_eff, M=M
                 )
                 
+                # Compute bootstrap CI if we have trajectories
+                # Use regime-aware bootstrap (Phase 2 improvement)
+                T2_lower = None
+                T2_upper = None
+                if fit_result and len(E_abs_all) > 0 and E_abs_all.shape[0] > 0:
+                    try:
+                        from regime_aware_bootstrap import regime_aware_bootstrap_T2
+                        T2_mean, T2_ci, _, method = regime_aware_bootstrap_T2(
+                            t_out, E_abs_all, E_se=E_se, B=500, verbose=False,
+                            tau_c=tau_c_eff, gamma_e=gamma_e, B_rms=B_rms_eff,
+                            use_analytical_ci=True
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                            fit_result['ci_method'] = method
+                    except ImportError:
+                        from fitting import bootstrap_T2
+                        xi_eff = gamma_e * B_rms_eff * tau_c_eff
+                        n_bootstrap = 150 if xi_eff < 0.3 else 200
+                        T2_mean, T2_ci, _ = bootstrap_T2(
+                            t_out, E_abs_all, E_se=E_se, B=n_bootstrap, verbose=False,
+                            tau_c=tau_c_eff, gamma_e=gamma_e, B_rms=B_rms_eff
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                
                 if fit_result:
                     T2 = fit_result['T2']
-                    T2_lower = fit_result.get('T2_ci', [None, None])[0]
-                    T2_upper = fit_result.get('T2_ci', [None, None])[1]
+                    # Use bootstrap CI if available, otherwise try to get from fit_result
+                    if T2_lower is None:
+                        T2_lower = fit_result.get('T2_ci', [None, None])[0]
+                    if T2_upper is None:
+                        T2_upper = fit_result.get('T2_ci', [None, None])[1]
                     beta = fit_result.get('beta', None)
                     model = fit_result.get('model', None)
                 else:
@@ -294,7 +392,7 @@ def run_single_case(material_name, profile, noise_model,
                 
                 # Compute echo coherence
                 tau_echo, E_echo, E_echo_abs, E_echo_se, E_echo_abs_all = compute_hahn_echo_coherence_double_OU(
-                    tau_c1, tau_c2, B_rms1, B_rms2, B_0, gamma_e, dt, tau_list,
+                    tau_c1, tau_c2, B_rms1, B_rms2, gamma_e, dt, tau_list,
                     M, seed=seed+i, progress=verbose and i == 0
                 )
                 
@@ -307,10 +405,41 @@ def run_single_case(material_name, profile, noise_model,
                     tau_c=tau_c_eff, gamma_e=gamma_e, B_rms=B_rms_eff, M=M
                 )
                 
+                # Compute bootstrap CI if we have trajectories
+                # Use regime-aware bootstrap (Phase 2 improvement)
+                T2_lower = None
+                T2_upper = None
+                if fit_result and len(E_echo_abs_all) > 0 and E_echo_abs_all.shape[0] > 0:
+                    try:
+                        from regime_aware_bootstrap import regime_aware_bootstrap_T2
+                        T2_mean, T2_ci, _, method = regime_aware_bootstrap_T2(
+                            tau_echo, E_echo_abs_all, E_se=E_echo_se, B=500, verbose=False,
+                            tau_c=tau_c_eff, gamma_e=gamma_e, B_rms=B_rms_eff,
+                            use_analytical_ci=True
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                            fit_result['ci_method'] = method
+                    except ImportError:
+                        from fitting import bootstrap_T2
+                        xi_eff = gamma_e * B_rms_eff * tau_c_eff
+                        n_bootstrap = 150 if xi_eff < 0.3 else 200
+                        T2_mean, T2_ci, _ = bootstrap_T2(
+                            tau_echo, E_echo_abs_all, E_se=E_echo_se, B=n_bootstrap, verbose=False,
+                            tau_c=tau_c_eff, gamma_e=gamma_e, B_rms=B_rms_eff
+                        )
+                        if T2_ci is not None:
+                            T2_lower, T2_upper = T2_ci
+                            fit_result['T2_ci'] = T2_ci
+                
                 if fit_result:
                     T2 = fit_result['T2']
-                    T2_lower = fit_result.get('T2_ci', [None, None])[0]
-                    T2_upper = fit_result.get('T2_ci', [None, None])[1]
+                    # Use bootstrap CI if available, otherwise try to get from fit_result
+                    if T2_lower is None:
+                        T2_lower = fit_result.get('T2_ci', [None, None])[0]
+                    if T2_upper is None:
+                        T2_upper = fit_result.get('T2_ci', [None, None])[1]
                     beta = fit_result.get('beta', None)
                     model = fit_result.get('model', None)
                 else:

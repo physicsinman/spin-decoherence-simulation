@@ -18,7 +18,9 @@ from simulate_materials import run_full_comparison, test_single_run
 from analyze_results import (plot_T2_comparison, 
                              plot_echo_enhancement,
                              create_summary_table,
+                             create_clean_summary_table,
                              plot_noise_PSD_comparison,
+                             plot_eta_dimensionless_collapse,
                              load_results)
 from pathlib import Path
 import yaml
@@ -91,12 +93,30 @@ def main():
         output_path.mkdir(exist_ok=True)
         
         # Create plots (save_path without extension - will generate .png and .pdf)
+        # With CI (default)
         plot_T2_comparison(all_results, 
-                          save_path=str(output_path / "T2_comparison"))
+                          save_path=str(output_path / "T2_comparison"),
+                          show_ci=True)
+        # Without CI (clean version)
+        plot_T2_comparison(all_results, 
+                          save_path=str(output_path / "T2_comparison_no_ci"),
+                          show_ci=False)
         plot_echo_enhancement(all_results,
-                             save_path=str(output_path / "echo_enhancement"))
+                             save_path=str(output_path / "echo_enhancement"),
+                             show_ci=False)
         create_summary_table(all_results,
                            save_path=str(output_path / "summary.csv"))
+        # Clean summary table for publication
+        create_clean_summary_table(all_results,
+                                  save_path=str(output_path / "summary_clean.csv"))
+        
+        # Dimensionless collapse plots
+        from analyze_results import plot_dimensionless_collapse
+        plot_dimensionless_collapse(all_results,
+                                   save_path=str(output_path / "dimensionless_collapse"))
+        # New eta dimensionless collapse plot
+        plot_eta_dimensionless_collapse(all_results,
+                                       save_path=str(output_path / "eta_dimensionless_collapse"))
         
         # Load profiles for PSD comparison
         try:
@@ -128,12 +148,30 @@ def main():
     
     # Auto-analyze
     output_path = Path(args.output_dir)
+    # With CI (default)
     plot_T2_comparison(all_results,
-                      save_path=str(output_path / "T2_comparison"))
+                      save_path=str(output_path / "T2_comparison"),
+                      show_ci=True)
+    # Without CI (clean version)
+    plot_T2_comparison(all_results,
+                      save_path=str(output_path / "T2_comparison_no_ci"),
+                      show_ci=False)
     plot_echo_enhancement(all_results,
-                         save_path=str(output_path / "echo_enhancement"))
+                         save_path=str(output_path / "echo_enhancement"),
+                         show_ci=False)
     create_summary_table(all_results,
                        save_path=str(output_path / "summary.csv"))
+    # Clean summary table for publication
+    create_clean_summary_table(all_results,
+                              save_path=str(output_path / "summary_clean.csv"))
+    
+    # Dimensionless collapse plots
+    from analyze_results import plot_dimensionless_collapse
+    plot_dimensionless_collapse(all_results,
+                               save_path=str(output_path / "dimensionless_collapse"))
+    # New eta dimensionless collapse plot
+    plot_eta_dimensionless_collapse(all_results,
+                                   save_path=str(output_path / "eta_dimensionless_collapse"))
     
     # Load profiles for PSD comparison
     try:

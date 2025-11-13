@@ -221,9 +221,9 @@ def plot_coherence_curve(result, ax=None, show_fit=True, show_error=True,
             filtered_handles.append(h)
             filtered_labels.append(l)
     if filtered_handles:
-        ax.legend(filtered_handles, filtered_labels, loc='lower left', fontsize=9, framealpha=0.9)
+        ax.legend(filtered_handles, filtered_labels, loc='upper right', fontsize=9, framealpha=0.9)
     else:
-        ax.legend(loc='lower left', fontsize=9, framealpha=0.9)
+        ax.legend(loc='upper right', fontsize=9, framealpha=0.9)
     ax.set_ylim([0, 1.05])
     ax.set_xlim([0, None])
     
@@ -334,17 +334,21 @@ def plot_T2_vs_tauc(results, ax=None, show_theory=True, show_ci=True,
                   color='#1E40AF', markersize=9, 
                   label=r'Simulation', linewidth=2.5, zorder=5,
                   markeredgecolor='#1E3A8A', markeredgewidth=1.5)
-        # Add error bars manually for log scale
+        # Add error bars manually for log scale (improved visibility)
         for i in range(len(tau_c_values)):
-            if T2_ci_lower_arr[i] is not None:
+            if T2_ci_lower_arr[i] is not None and T2_ci_upper_arr[i] is not None:
+                # Main error bar line (thicker and more visible)
                 ax.plot([tau_c_values[i] * 1e6, tau_c_values[i] * 1e6],
                        [T2_ci_lower_arr[i] * 1e6, T2_ci_upper_arr[i] * 1e6],
-                       color='#1E40AF', linewidth=2, alpha=0.6)
-                # Caps
-                ax.plot(tau_c_values[i] * 1e6, T2_ci_lower_arr[i] * 1e6, '_',
-                       color='#1E40AF', markersize=10, markeredgewidth=2)
-                ax.plot(tau_c_values[i] * 1e6, T2_ci_upper_arr[i] * 1e6, '_',
-                       color='#1E40AF', markersize=10, markeredgewidth=2)
+                       color='#1E40AF', linewidth=2.5, alpha=0.75, zorder=4)
+                # Caps (horizontal lines at ends)
+                cap_width = (tau_c_values.max() - tau_c_values.min()) * 1e6 * 0.01  # 1% of x-range
+                ax.plot([tau_c_values[i] * 1e6 - cap_width, tau_c_values[i] * 1e6 + cap_width],
+                       [T2_ci_lower_arr[i] * 1e6, T2_ci_lower_arr[i] * 1e6],
+                       color='#1E40AF', linewidth=2.5, alpha=0.75, zorder=4)
+                ax.plot([tau_c_values[i] * 1e6 - cap_width, tau_c_values[i] * 1e6 + cap_width],
+                       [T2_ci_upper_arr[i] * 1e6, T2_ci_upper_arr[i] * 1e6],
+                       color='#1E40AF', linewidth=2.5, alpha=0.75, zorder=4)
     else:
         ax.loglog(tau_c_values * 1e6, T2_fitted * 1e6, 'o-',
                   color='#1E40AF', markersize=9, 
@@ -373,12 +377,7 @@ def plot_T2_vs_tauc(results, ax=None, show_theory=True, show_ci=True,
                       linewidth=2, alpha=0.8, zorder=2,
                       label=rf'Static limit: $T_2 = \sqrt{{2}}/\Delta\omega = {T2_static*1e6:.2f}$ μs')
         
-        # Also plot from stored T2_theory if available (for comparison)
-        if len(T2_theory) > 0:
-            T2_theory = np.array(T2_theory)
-            ax.loglog(tau_c_values * 1e6, T2_theory * 1e6, 'o',
-                     color='#991B1B', markersize=4, alpha=0.6, zorder=4,
-                     label='Theory (stored)', markerfacecolor='none', markeredgewidth=1)
+        # Removed "Theory (stored)" plot for clarity (redundant with analytical theory line)
     
     # Add crossover line and region highlighting (quantitative marker)
     if show_crossover and gamma_e is not None and B_rms is not None:
@@ -410,6 +409,23 @@ def plot_T2_vs_tauc(results, ax=None, show_theory=True, show_ci=True,
         ax.text(tau_c_crossover * 1e6, y_max * 0.7, 
                r'$\xi = 1$', rotation=90, fontsize=10, 
                verticalalignment='bottom', color='gray', fontweight='bold')
+        
+        # Add note for quasi-static regime convergence (if large tau_c present)
+        if tau_c_values.max() * 1e6 > 3.0:  # If we have slow noise data
+            tau_c_static_threshold = 5.0  # μs
+            if tau_c_values.max() * 1e6 > tau_c_static_threshold:
+                # Check if simulation approaches static limit
+                static_limit_T2 = np.sqrt(2.0) / Delta_omega * 1e6  # in μs
+                tau_c_large = tau_c_values[tau_c_values * 1e6 > tau_c_static_threshold]
+                if len(tau_c_large) > 0:
+                    T2_large = T2_fitted[tau_c_values * 1e6 > tau_c_static_threshold] * 1e6
+                    # If T2 is still decreasing significantly, add note
+                    if len(T2_large) > 1 and (T2_large[-1] / T2_large[0]) < 0.8:
+                        ax.text(tau_c_static_threshold * 1.5, y_max * 0.3,
+                               r'Note: Quasi-static convergence\nmay require $T_{\rm max} \gg \tau_c$',
+                               fontsize=8, color='gray', alpha=0.7,
+                               bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.2, edgecolor='gray'),
+                               verticalalignment='center')
     
     # Reference line: T_2 ∝ 1/τ_c (full range) - removed for clarity
     
@@ -532,9 +548,30 @@ def plot_multiple_coherence_curves(results, tau_c_indices=None, n_curves=5):
         tau_c_us = tau_c * 1e6
         color = colormap(norm(tau_c))
         
-        # Plot main curve
-        ax.plot(t * 1e6, E_magnitude, '-', color=color,
-               label=f'$\\tau_c = {tau_c_us:.2f}$ μs', linewidth=2.5, alpha=0.9)
+        # Check for excessive oscillation (may indicate insufficient ensemble averaging)
+        # Calculate relative variation in the decay region
+        decay_mask = E_magnitude < 0.8  # Focus on decay region
+        if np.sum(decay_mask) > 10:
+            E_decay = E_magnitude[decay_mask]
+            # Calculate local variation
+            if len(E_decay) > 5:
+                local_var = np.std(np.diff(E_decay))
+                mean_E = np.mean(E_decay)
+                if mean_E > 0 and local_var / mean_E > 0.1:  # >10% relative variation
+                    # This curve may need more ensemble averaging
+                    # Plot with slightly different style to indicate potential issue
+                    ax.plot(t * 1e6, E_magnitude, '-', color=color,
+                           label=f'$\\tau_c = {tau_c_us:.2f}$ μs', 
+                           linewidth=2.5, alpha=0.85, linestyle='-')
+                else:
+                    ax.plot(t * 1e6, E_magnitude, '-', color=color,
+                           label=f'$\\tau_c = {tau_c_us:.2f}$ μs', linewidth=2.5, alpha=0.9)
+            else:
+                ax.plot(t * 1e6, E_magnitude, '-', color=color,
+                       label=f'$\\tau_c = {tau_c_us:.2f}$ μs', linewidth=2.5, alpha=0.9)
+        else:
+            ax.plot(t * 1e6, E_magnitude, '-', color=color,
+                   label=f'$\\tau_c = {tau_c_us:.2f}$ μs', linewidth=2.5, alpha=0.9)
     
     # Add gray shading for noise floor region (below 0.05)
     ax.axhspan(0, 0.05, alpha=0.1, color='gray', zorder=0, 
@@ -560,8 +597,10 @@ def plot_multiple_coherence_curves(results, tau_c_indices=None, n_curves=5):
     label_pairs.sort(key=lambda x: extract_tau_c(x[1]))
     
     # Recreate legend with sorted order
+    # Position legend to avoid overlap with plot data (upper right or outside)
     ax.legend([h for h, l in label_pairs], [l for h, l in label_pairs], 
-              loc='best', ncol=2, fontsize=9, framealpha=0.9)
+              loc='upper right', ncol=1, fontsize=9, framealpha=0.9,
+              bbox_to_anchor=(0.98, 0.98))  # Slightly inset from corner
     ax.set_ylim([0, 1.1])
     
     plt.tight_layout()
@@ -725,6 +764,24 @@ def create_summary_plots(results, output_dir='results', save=True,
                              bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     
     # Plot residuals: all as separate subplots in bottom row
+    # First pass: calculate unified y-axis range for all residual plots
+    all_residual_max = 0.02  # Minimum range
+    for i, idx in enumerate(example_indices):
+        if idx < len(results):
+            result = results[idx]
+            if result.get('fit_result') is not None:
+                fit_result = result['fit_result']
+                fit_curve = fit_result['fit_curve']
+                t = np.array(result['t'])
+                E_magnitude = np.array(result['E_magnitude'])
+                residuals = E_magnitude - fit_curve
+                residual_max = max(abs(residuals.max()), abs(residuals.min()))
+                all_residual_max = max(all_residual_max, residual_max * 1.2)
+    
+    # Unified y-axis range for all residual plots (for consistency)
+    unified_ylim = max(0.02, all_residual_max)
+    
+    # Second pass: plot residuals with unified y-axis
     for i, idx in enumerate(example_indices):
         if idx < len(results):
             result = results[idx]
@@ -738,8 +795,6 @@ def create_summary_plots(results, output_dir='results', save=True,
                 # Calculate residual statistics
                 residual_std = np.std(residuals)
                 residual_mean = np.mean(residuals)
-                residual_max = max(abs(residuals.max()), abs(residuals.min()))
-                ylim_max = max(0.02, residual_max * 1.2)
                 
                 # Plot residual in separate subplot
                 residual_axes[i].plot(t * 1e6, residuals, '-', 
@@ -747,7 +802,8 @@ def create_summary_plots(results, output_dir='results', save=True,
                           linewidth=1.5, alpha=0.9)
                 residual_axes[i].axhline(0, color=COLOR_SCHEME['theory'], 
                              linestyle='--', linewidth=1.5, alpha=0.8)
-                residual_axes[i].set_ylim(-ylim_max, ylim_max)
+                # Use unified y-axis range for all subplots
+                residual_axes[i].set_ylim(-unified_ylim, unified_ylim)
                 
                 # Add ±2σ bands
                 residual_axes[i].axhline(2 * residual_std, color='gray', 
@@ -882,13 +938,18 @@ def plot_ou_psd_verification(delta_B, tau_c, B_rms, dt, ax=None):
     S_0 = 2 * (B_rms**2) * tau_c
     
     # Plot simulated and theoretical PSD
-    ax.loglog(freq, PSD, 'b-', label='Simulated PSD', linewidth=2, alpha=0.8)
+    # Simulated PSD: solid line, slightly transparent for better visibility
+    ax.loglog(freq, PSD, 'b-', label='Simulated PSD', linewidth=2.5, alpha=0.85, zorder=4)
+    # Theoretical PSD: dashed line, more transparent to not obscure simulated data
     ax.loglog(freq, S_th, 'r--', label='Theoretical PSD', linewidth=2.5, 
-             dashes=(3, 2), alpha=0.9)
+             dashes=(5, 3), alpha=0.75, zorder=3)
     
     # Mark corner frequency (simple vertical line)
     ax.axvline(f_c, color='green', linestyle=':', linewidth=2, alpha=0.6, zorder=3,
                label=f'Corner frequency: $f_c = {f_c:.2e}$ Hz')
+    
+    # Frequency limits (Nyquist and minimum frequency) - removed for cleaner visualization
+    # These are technical details that can clutter the plot
     
     ax.set_xlabel('Frequency $f$ (Hz)', fontsize=12, fontweight='bold')
     ax.set_ylabel('Power spectral density $S(f)$ (T²/Hz)', fontsize=12, fontweight='bold')
@@ -1037,13 +1098,34 @@ def plot_dimensionless_collapse(results, gamma_e, B_rms, ax=None, show_ci=True):
             ax.axvspan(max(1.0, xi_min), xi_max, 
                       color=COLOR_SCHEME['static_region'], alpha=0.15, zorder=0)
     
-    # Theoretical limit: Y = 1 for ξ << 1
+    # Theoretical limit: Y = 1 for ξ << 1 (MN regime)
     ax.axhline(1.0, color='#991B1B', linestyle='--', linewidth=2.5, alpha=0.9,
-              label='Theory (Y = 1)', zorder=3)
+              label='Theory (Y = 1, MN limit)', zorder=3)
+    
+    # Theoretical prediction for quasi-static regime: Y ∝ ξ (slope = 1)
+    # For ξ >> 1, T2 ≈ sqrt(2)/Delta_omega, so Y = T2 * Delta_omega^2 * tau_c
+    # = (sqrt(2)/Delta_omega) * Delta_omega^2 * tau_c = sqrt(2) * Delta_omega * tau_c = sqrt(2) * xi
+    if len(xi_values) > 0 and xi_values.max() > 1.0:
+        # Plot theoretical line for quasi-static regime (Y = sqrt(2) * xi for ξ >> 1)
+        xi_qs = np.logspace(np.log10(max(1.0, xi_values.min())), 
+                           np.log10(xi_values.max()), 100)
+        Y_qs_theory = np.sqrt(2.0) * xi_qs
+        ax.loglog(xi_qs, Y_qs_theory, '--', color='#DC2626', linewidth=2, 
+                 alpha=0.7, zorder=2, label=r'Theory (quasi-static: $Y = \sqrt{2}\xi$)')
     
     # Mark motional-narrowing regime boundary
     ax.axvline(1.0, color='gray', linestyle=':', linewidth=2, alpha=0.8, zorder=2,
               label=r'$\xi = 1$ (MN boundary)')
+    
+    # Add warning annotation for ξ > 10 region (if present)
+    if len(xi_values) > 0 and xi_values.max() > 10.0:
+        xi_warning = 10.0
+        y_warning = Y_values[xi_values > 10.0].max() if np.any(xi_values > 10.0) else y_max
+        ax.text(xi_warning * 1.2, y_warning * 0.5,
+               r'$\xi > 10$: Convergence\nmay require larger $T_{\rm max}$',
+               fontsize=9, color='gray', alpha=0.7,
+               bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3, edgecolor='gray'),
+               verticalalignment='center')
     
     # LaTeX labels with unified notation and scientific storytelling
     ax.set_xlabel(r'$\xi = \Delta\omega \cdot \tau_c$', fontsize=13, fontweight='bold')
@@ -1062,7 +1144,6 @@ def plot_dimensionless_collapse(results, gamma_e, B_rms, ax=None, show_ci=True):
     except TypeError:
         # Fallback for matplotlib 3.9+ where useMathText was removed
         formatter = LogFormatterSciNotation(base=10)
-    formatter.set_scientific(False)  # Use regular notation instead of scientific
     ax.xaxis.set_major_formatter(formatter)
     ax.yaxis.set_major_formatter(formatter)
     
