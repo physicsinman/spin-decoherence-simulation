@@ -11,8 +11,7 @@ import json
 from datetime import datetime
 from simulate import run_simulation_sweep, save_results, get_default_config, config_to_dict
 from visualize import create_summary_plots
-from config import CONSTANTS
-from units import Units
+from spin_decoherence.config import CONSTANTS, Units
 
 
 def main():
@@ -25,14 +24,14 @@ def main():
                        help='Maximum tau_c in μs (default: 10.0)')
     parser.add_argument('--tau-c-num', type=int, default=20,
                        help='Number of tau_c values (default: 20)')
-    parser.add_argument('--T-max', type=float, default=30.0,
-                       help='Maximum simulation time in μs (default: 30.0)')
-    parser.add_argument('--dt', type=float, default=0.2,
-                       help='Time step in ns (default: 0.2)')
+    parser.add_argument('--T-max', type=float, default=12500.0,
+                       help='Maximum simulation time in μs (default: 12500.0 for Si:P)')
+    parser.add_argument('--dt', type=float, default=0.01,
+                       help='Time step in ns (default: 0.01)')
     parser.add_argument('--M', type=int, default=1000,
                        help='Number of realizations (default: 1000)')
-    parser.add_argument('--B-rms', type=float, default=5.0,
-                       help='RMS noise amplitude in μT (default: 5.0)')
+    parser.add_argument('--B-rms', type=float, default=0.00321,
+                       help='RMS noise amplitude in μT (default: 0.00321 for Si:P)')
     parser.add_argument('--output-dir', type=str, default='results',
                        help='Output directory (default: results)')
     parser.add_argument('--seed', type=int, default=42,
@@ -235,7 +234,7 @@ def main():
         print(f"τ_c range: {min(tau_c_values)*1e6:.2f} - {max(tau_c_values)*1e6:.2f} μs")
         
         # MN regime fit
-        from fitting import fit_mn_slope
+        from spin_decoherence.analysis import fit_mn_slope
         # CONSTANTS already imported at top
         mn_fit = fit_mn_slope(results, CONSTANTS.GAMMA_E, params['B_rms'], xi_threshold=0.2)
         if mn_fit is not None:

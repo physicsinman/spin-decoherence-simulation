@@ -8,7 +8,7 @@ without excessive memory requirements.
 import numpy as np
 from typing import Optional, Tuple, Dict
 from parameter_validation import SimulationParameters
-from ornstein_uhlenbeck import generate_ou_noise
+from spin_decoherence.noise import generate_ou_noise
 
 
 class MemoryEfficientSimulation:

@@ -11,10 +11,16 @@ import json
 import os
 from datetime import datetime
 
-from coherence import compute_ensemble_coherence
-from fitting import fit_coherence_decay, theoretical_T2_motional_narrowing, bootstrap_T2
-from config import CONSTANTS, SimulationConfig
-from units import Units
+# Updated imports: use spin_decoherence package directly
+from spin_decoherence.physics import (
+    compute_ensemble_coherence,
+    theoretical_T2_motional_narrowing,
+)
+from spin_decoherence.analysis import (
+    fit_coherence_decay,
+    bootstrap_T2,
+)
+from spin_decoherence.config import CONSTANTS, SimulationConfig, Units
 
 
 # Default simulation configuration (from Chapter 4)
@@ -322,8 +328,12 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
     result : dict
         Dictionary containing FID and echo results
     """
-    from coherence import compute_ensemble_coherence, compute_hahn_echo_coherence
-    from fitting import fit_coherence_decay, analytical_ou_coherence
+    from spin_decoherence.physics import (
+        compute_ensemble_coherence,
+        compute_hahn_echo_coherence,
+    )
+    from spin_decoherence.analysis import fit_coherence_decay
+    from spin_decoherence.physics import analytical_ou_coherence
     
     if params is None:
         default_config = get_default_config()
@@ -427,7 +437,10 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
     
     # Use filter-function integral for Hahn echo (exact OU noise integral)
     # E_echo(2τ) = exp[-1/π ∫₀^∞ S_ω(ω)/ω² |F_echo(ω,τ)|² dω]
-    from fitting import analytical_hahn_echo_filter_function, analytical_hahn_echo_coherence
+    from spin_decoherence.analysis import (
+        analytical_hahn_echo_filter_function,
+        analytical_hahn_echo_coherence,
+    )
     tau_list_for_theory = np.array(tau_list)
     if verbose:
         print("  Computing filter-function integral for echo theory...")
@@ -458,7 +471,7 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
     
     # Fit FID decay with scale and offset
     # T₂ is automatically extracted as time where χ(t) = 1 (E = 1/e) in fit_coherence_decay_with_offset
-    from fitting import fit_coherence_decay_with_offset
+    from spin_decoherence.analysis import fit_coherence_decay_with_offset
     fit_result_fid = fit_coherence_decay_with_offset(
         t_fid, E_fid_abs, E_se=E_fid_se, model='auto',
         tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms'],
@@ -652,7 +665,7 @@ def run_hahn_echo_sweep(params=None, tau_list=None, verbose=True):
         # Fit echo decay with scale and offset (already done in run_simulation_with_hahn_echo)
         # Bootstrap CI for echo T2 (only if compute_bootstrap is True)
         if params.get('compute_bootstrap', True):
-            from fitting import bootstrap_T2
+            from spin_decoherence.analysis import bootstrap_T2
             tau_echo = np.array(result['tau_echo'])
             E_echo_abs = np.array(result['E_echo_abs'])
             E_echo_se = np.array(result['E_echo_se'])
@@ -730,11 +743,11 @@ def run_simulation_single(tau_c, params=None, verbose=True):
     # For MN regime, use default T_max (already long enough)
     T_max_adaptive = params['T_max']
     if xi > 2.0:  # Static/quasi-static regime
-        # In static regime, coherence decays very quickly (Gaussian decay)
-        # Use T_max = max(5*T2_th, 1.0 μs) to capture full decay including noise floor
-        # Static regime: T2 ≈ sqrt(2)/Delta_omega (independent of tau_c)
-        # Increased from 3*T2_th to 5*T2_th to show complete decay curve in plots
-        T_max_from_T2 = max(5.0 * T2_th, 1.0e-6)  # At least 1.0 μs (increased from 0.5 μs)
+        # CRITICAL FIX: QS regime requires T_max >> T2_th for accurate fitting
+        # In QS regime, T2 ≈ sqrt(2)/Delta_omega (independent of tau_c)
+        # For reliable fitting, need T_max >= 10×T2_th (increased from 5×)
+        # This ensures we capture the full Gaussian decay before noise floor
+        T_max_from_T2 = max(10.0 * T2_th, 1.0e-6)  # At least 1.0 μs
         
         # CRITICAL FIX: Ensure T_max is at least 5*tau_c to guarantee OU noise burn-in
         # OU noise needs burn-in time of ~5*tau_c to reach stationary distribution
@@ -742,15 +755,30 @@ def run_simulation_single(tau_c, params=None, verbose=True):
         burnin_time = 5.0 * tau_c
         T_max_from_burnin = max(T_max_from_T2, burnin_time)
         
-        # Allow up to default T_max to ensure sufficient coverage
-        T_max_adaptive = min(T_max_from_burnin, params['T_max'])
-        if verbose:
-            print(f"[DEBUG] Static regime detected (ξ = {xi:.3f} >> 1)")
-            if T_max_from_burnin > T_max_from_T2:
-                print(f"[DEBUG] T_max extended for OU burn-in: {burnin_time*1e6:.2f} μs "
-                      f"(5×τ_c = {tau_c*1e6:.2f} μs)")
-            print(f"[DEBUG] Adaptive T_max: {T_max_adaptive*1e6:.2f} μs "
-                  f"(based on T2_th = {T2_th*1e6:.2f} μs, default = {params['T_max']*1e6:.2f} μs)")
+        # CRITICAL: Don't cap T_max at params['T_max'] for QS regime!
+        # QS regime often requires longer simulation times than default
+        # Use params['T_max'] as minimum, but allow extension up to reasonable limit
+        # Reasonable limit: 100 ms (to avoid excessive memory usage)
+        T_max_reasonable_limit = 100.0e-3  # 100 ms
+        T_max_adaptive = min(T_max_from_burnin, T_max_reasonable_limit)
+        
+        # Warn if we're using more than default T_max
+        if T_max_adaptive > params['T_max']:
+            if verbose:
+                print(f"[WARNING] QS regime requires extended T_max:")
+                print(f"  Default T_max: {params['T_max']*1e6:.2f} μs")
+                print(f"  Required T_max: {T_max_from_burnin*1e6:.2f} μs (10×T2_th = {T2_th*1e6:.2f} μs)")
+                print(f"  Using: {T_max_adaptive*1e6:.2f} μs")
+                if T_max_adaptive >= T_max_reasonable_limit:
+                    print(f"  [LIMIT] Capped at {T_max_reasonable_limit*1e3:.1f} ms to avoid excessive memory")
+        else:
+            if verbose:
+                print(f"[DEBUG] Static regime detected (ξ = {xi:.3f} >> 1)")
+                if T_max_from_burnin > T_max_from_T2:
+                    print(f"[DEBUG] T_max extended for OU burn-in: {burnin_time*1e6:.2f} μs "
+                          f"(5×τ_c = {tau_c*1e6:.2f} μs)")
+                print(f"[DEBUG] Adaptive T_max: {T_max_adaptive*1e6:.2f} μs "
+                      f"(based on T2_th = {T2_th*1e6:.2f} μs, default = {params['T_max']*1e6:.2f} μs)")
     elif xi < 0.1:  # Motional narrowing regime
         # In MN regime, T2 is long, so default T_max should be fine
         # But ensure it's at least 5*T2_th for proper fitting and visualization
@@ -779,7 +807,7 @@ def run_simulation_single(tau_c, params=None, verbose=True):
     
     # Fit coherence decay with scale and offset
     # T₂ is automatically extracted as time where χ(t) = 1 (E = 1/e) in fit_coherence_decay_with_offset
-    from fitting import fit_coherence_decay_with_offset
+    from spin_decoherence.analysis import fit_coherence_decay_with_offset
     fit_result = fit_coherence_decay_with_offset(
         t, E_magnitude, E_se=E_se, model='auto',
         tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms'],
@@ -803,7 +831,7 @@ def run_simulation_single(tau_c, params=None, verbose=True):
     # Get first trajectory's delta_B for PSD verification (optional)
     delta_B_sample = None
     if params.get('save_delta_B_sample', False):
-        from ornstein_uhlenbeck import generate_ou_noise
+        from spin_decoherence.noise import generate_ou_noise
         N_steps = len(t)
         delta_B_sample = generate_ou_noise(
             tau_c, params['B_rms'], params['dt'], N_steps, seed=params['seed']

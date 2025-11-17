@@ -14,17 +14,18 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-# Import existing modules
-from ornstein_uhlenbeck import generate_ou_noise
-from noise_models import generate_double_OU_noise
-from coherence import (compute_ensemble_coherence, 
-                       compute_hahn_echo_coherence,
-                       compute_ensemble_coherence_double_OU,
-                       compute_hahn_echo_coherence_double_OU,
-                       compute_phase_accumulation)
-from fitting import fit_coherence_decay_with_offset, bootstrap_T2
+# Updated imports: use spin_decoherence package directly
+from spin_decoherence.noise import generate_ou_noise, generate_double_OU_noise
+from spin_decoherence.physics import (
+    compute_ensemble_coherence,
+    compute_hahn_echo_coherence,
+    compute_ensemble_coherence_double_OU,
+    compute_hahn_echo_coherence_double_OU,
+    compute_phase_accumulation,
+)
+from spin_decoherence.analysis import fit_coherence_decay_with_offset, bootstrap_T2
 from simulate import get_dimensionless_tau_range
-from config import CONSTANTS
+from spin_decoherence.config import CONSTANTS
 
 
 def load_profiles(yaml_file='profiles.yaml'):
@@ -111,11 +112,20 @@ def run_single_case(material_name, profile, noise_model,
             
             # Compute coherence
             if sequence_type == 'FID':
-                # Use use_online=False to get E_abs_all for bootstrap CI
+                # MEMORY FIX: Check if we can store full trajectories for bootstrap
+                # Estimate memory: N_steps * M * 8 bytes (float64)
+                N_steps_est = int(T_max / dt)
+                memory_gb_est = (N_steps_est * M * 8) / (1024**3)
+                
+                # Use online mode if memory would exceed 10 GB
+                use_online = memory_gb_est > 10.0
+                if use_online and verbose:
+                    print(f"    [INFO] Using online mode (memory estimate: {memory_gb_est:.1f} GB)")
+                
                 E, E_abs, E_se, t_out, E_abs_all = compute_ensemble_coherence(
                     tau_c, B_rms, gamma_e, dt, T_max, M, 
                     seed=seed+i, progress=verbose and i == 0,
-                    use_online=False  # Need full trajectories for bootstrap
+                    use_online=use_online  # Use online mode for large memory requirements
                 )
                 
                 # Fit and extract T₂
@@ -128,7 +138,7 @@ def run_single_case(material_name, profile, noise_model,
                 # Use regime-aware bootstrap (Phase 2 improvement)
                 T2_lower = None
                 T2_upper = None
-                if fit_result and len(E_abs_all) > 0 and E_abs_all.shape[0] > 0:
+                if fit_result and E_abs_all is not None and len(E_abs_all) > 0 and E_abs_all.shape[0] > 0:
                     try:
                         from regime_aware_bootstrap import regime_aware_bootstrap_T2
                         T2_mean, T2_ci, _, method = regime_aware_bootstrap_T2(
@@ -142,7 +152,7 @@ def run_single_case(material_name, profile, noise_model,
                             fit_result['ci_method'] = method  # Store method used
                     except ImportError:
                         # Fallback to standard bootstrap if regime-aware not available
-                        from fitting import bootstrap_T2
+                        from spin_decoherence.analysis import bootstrap_T2
                         xi = gamma_e * B_rms * tau_c
                         n_bootstrap = 150 if xi < 0.3 else 200
                         T2_mean, T2_ci, _ = bootstrap_T2(
@@ -297,11 +307,17 @@ def run_single_case(material_name, profile, noise_model,
             
             # Compute coherence
             if sequence_type == 'FID':
-                # Use use_online=False to get E_abs_all for bootstrap CI
+                # MEMORY FIX: Check if we can store full trajectories for bootstrap
+                N_steps_est = int(T_max / dt)
+                memory_gb_est = (N_steps_est * M * 8) / (1024**3)
+                use_online = memory_gb_est > 10.0
+                if use_online and verbose:
+                    print(f"    [INFO] Using online mode (memory estimate: {memory_gb_est:.1f} GB)")
+                
                 E, E_abs, E_se, t_out, E_abs_all = compute_ensemble_coherence_double_OU(
                     tau_c1, tau_c2, B_rms1, B_rms2, gamma_e, dt, T_max, M,
                     seed=seed+i, progress=verbose and i == 0,
-                    use_online=False  # Need full trajectories for bootstrap
+                    use_online=use_online  # Use online mode for large memory requirements
                 )
                 
                 # Fit and extract T₂
@@ -318,7 +334,7 @@ def run_single_case(material_name, profile, noise_model,
                 # Use regime-aware bootstrap (Phase 2 improvement)
                 T2_lower = None
                 T2_upper = None
-                if fit_result and len(E_abs_all) > 0 and E_abs_all.shape[0] > 0:
+                if fit_result and E_abs_all is not None and len(E_abs_all) > 0 and E_abs_all.shape[0] > 0:
                     try:
                         from regime_aware_bootstrap import regime_aware_bootstrap_T2
                         T2_mean, T2_ci, _, method = regime_aware_bootstrap_T2(

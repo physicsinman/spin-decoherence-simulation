@@ -11,9 +11,8 @@ import argparse
 import json
 import os
 from glob import glob
-from coherence import compute_ensemble_coherence
-from config import CONSTANTS
-from fitting import analytical_ou_coherence
+from spin_decoherence.physics import compute_ensemble_coherence, analytical_ou_coherence
+from spin_decoherence.config import CONSTANTS
 
 
 def load_results_from_json(json_path):

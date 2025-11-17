@@ -17,8 +17,7 @@ import os
 from datetime import datetime
 from simulate import run_simulation_sweep, save_results, get_default_config, config_to_dict
 from visualize import create_summary_plots
-from config import CONSTANTS
-from units import Units
+from spin_decoherence.config import CONSTANTS, Units
 
 
 def main():
@@ -141,7 +140,7 @@ def main():
         print(f"τ_c range: {min(tau_c_values)*1e6:.3f} - {max(tau_c_values)*1e6:.3f} μs")
         
         # MN regime fit
-        from fitting import fit_mn_slope
+        from spin_decoherence.analysis import fit_mn_slope
         mn_fit = fit_mn_slope(results, CONSTANTS.GAMMA_E, params['B_rms'], xi_threshold=0.2)
         if mn_fit is not None:
             print(f"\n{'='*70}")

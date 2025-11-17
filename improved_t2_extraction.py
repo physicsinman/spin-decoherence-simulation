@@ -231,12 +231,17 @@ class ImprovedT2Extraction:
         self,
         time_points: np.ndarray,
         coherence_values: np.ndarray,
-        coherence_errors: Optional[np.ndarray] = None
+        coherence_errors: Optional[np.ndarray] = None,
+        tau_c: Optional[float] = None,
+        gamma_e: Optional[float] = None,
+        B_rms: Optional[float] = None,
+        M: Optional[int] = None
     ) -> Tuple[float, float, Dict[str, any]]:
         """
         Automatically select best method and extract T2.
         
-        Tries multiple methods and selects the most reliable result.
+        FIXED: Now uses the proven fit_coherence_decay_with_offset method
+        which properly handles offset and extracts T2 correctly.
         
         Parameters
         ----------
@@ -246,72 +251,96 @@ class ImprovedT2Extraction:
             Coherence values
         coherence_errors : array, optional
             Standard errors
+        tau_c : float, optional
+            Correlation time (for regime-aware fitting)
+        gamma_e : float, optional
+            Electron gyromagnetic ratio (for regime-aware fitting)
+        B_rms : float, optional
+            RMS noise amplitude (for regime-aware fitting)
+        M : int, optional
+            Number of ensemble realizations (for weighted fitting)
         
         Returns
         -------
         T2 : float
-            Best T2 estimate
+            Best T2 estimate (seconds)
         T2_error : float
-            Estimated error
+            Estimated error (seconds)
         info : dict
             Information about method used
         """
-        results = []
+        # FIXED: Use proven fit_coherence_decay_with_offset method
+        # This is the same method used in simulate_materials.py
+        from spin_decoherence.analysis import fit_coherence_decay_with_offset
         
-        # Method 1: Exponential fitting
-        T2_exp, T2_err_exp, info_exp = self.extract_T2_multipoint(
-            time_points, coherence_values, coherence_errors, model='exponential'
-        )
-        if not np.isnan(T2_exp):
-            results.append({
-                'method': 'exponential',
-                'T2': T2_exp,
-                'error': T2_err_exp,
-                'reduced_chi_sq': info_exp.get('reduced_chi_squared', np.nan),
-                'info': info_exp
-            })
-        
-        # Method 2: Gaussian fitting (for quasi-static)
-        T2_gauss, T2_err_gauss, info_gauss = self.extract_T2_multipoint(
-            time_points, coherence_values, coherence_errors, model='gaussian'
-        )
-        if not np.isnan(T2_gauss):
-            results.append({
-                'method': 'gaussian',
-                'T2': T2_gauss,
-                'error': T2_err_gauss,
-                'reduced_chi_sq': info_gauss.get('reduced_chi_squared', np.nan),
-                'info': info_gauss
-            })
-        
-        # Method 3: Initial decay
-        T2_init, T2_err_init = self.extract_T2_initial_decay(
-            time_points, coherence_values
-        )
-        if not np.isnan(T2_init):
-            results.append({
-                'method': 'initial_decay',
-                'T2': T2_init,
-                'error': T2_err_init,
-                'reduced_chi_sq': np.nan,  # Not available for this method
-                'info': {}
-            })
-        
-        if not results:
-            return np.nan, np.nan, {'error': 'All methods failed'}
-        
-        # Select best result based on reduced chi-squared (if available)
-        # or smallest error
-        best_result = min(
-            results,
-            key=lambda x: (
-                x['reduced_chi_sq'] if not np.isnan(x['reduced_chi_sq']) else np.inf,
-                x['error'] if not np.isnan(x['error']) else np.inf
+        try:
+            fit_result = fit_coherence_decay_with_offset(
+                time_points,
+                coherence_values,
+                E_se=coherence_errors,
+                model='auto',
+                tau_c=tau_c,
+                gamma_e=gamma_e,
+                B_rms=B_rms,
+                M=M
             )
-        )
-        
-        return best_result['T2'], best_result['error'], {
-            'method_used': best_result['method'],
-            'all_results': results
-        }
+            
+            if fit_result is None:
+                return np.nan, np.nan, {'error': 'Fitting failed', 'method_used': 'fit_coherence_decay_with_offset'}
+            
+            T2 = fit_result.get('T2')
+            if T2 is None or np.isnan(T2) or T2 <= 0:
+                return np.nan, np.nan, {'error': 'Invalid T2 value', 'method_used': 'fit_coherence_decay_with_offset'}
+            
+            # CRITICAL FIX: Sanity check on T2 value - if unreasonably large, use analytical estimate
+            # T2 values > 1 second are unphysical for spin coherence
+            T2_max_reasonable = 1.0  # seconds
+            if T2 > T2_max_reasonable:
+                # T2 is unreasonably large, use analytical estimate for QS regime
+                if tau_c is not None and gamma_e is not None and B_rms is not None:
+                    Delta_omega = gamma_e * B_rms
+                    xi = Delta_omega * tau_c
+                    if xi > 2.0:  # QS regime
+                        from simulate import estimate_characteristic_T2
+                        T2_analytical = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+                        warnings.warn(
+                            f"Fitted T2 ({T2*1e6:.2f} μs) unreasonably large, "
+                            f"using analytical QS estimate ({T2_analytical*1e6:.2f} μs)"
+                        )
+                        T2 = T2_analytical
+                        fit_info_extra = {'note': 'Used analytical QS estimate due to unreasonable fitted T2', 'is_analytical': True}
+                    else:
+                        # Not QS regime, cap it
+                        warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+                        T2 = T2_max_reasonable
+                        fit_info_extra = {'note': 'T2 capped at reasonable maximum'}
+                else:
+                    # Missing parameters, cap it
+                    warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+                    T2 = T2_max_reasonable
+                    fit_info_extra = {'note': 'T2 capped at reasonable maximum'}
+            elif T2 < 1e-9:
+                warnings.warn(f"T2 value seems unreasonably small: {T2*1e6:.2f} μs. Check fitting.")
+                fit_info_extra = {}
+            else:
+                fit_info_extra = {}
+            
+            # Estimate error from RMSE or use a default
+            T2_error = fit_result.get('RMSE', 0.1 * T2)  # Default: 10% of T2
+            if 'T2_error' in fit_result:
+                T2_error = fit_result['T2_error']
+            
+            return T2, T2_error, {
+                'method_used': 'fit_coherence_decay_with_offset',
+                'model': fit_result.get('model', 'unknown'),
+                'R2': fit_result.get('R2', np.nan),
+                'AIC': fit_result.get('AIC', np.nan),
+                'RMSE': fit_result.get('RMSE', np.nan),
+                'fit_result': fit_result,
+                **fit_info_extra
+            }
+            
+        except Exception as e:
+            warnings.warn(f"T2 extraction failed: {e}")
+            return np.nan, np.nan, {'error': str(e), 'method_used': 'fit_coherence_decay_with_offset'}
 

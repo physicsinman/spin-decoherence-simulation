@@ -23,16 +23,15 @@ from improved_t2_extraction import ImprovedT2Extraction
 from regime_aware_bootstrap_improved import RegimeAwareBootstrap
 from simulation_monitor import SimulationMonitor
 
-# Existing modules (for compatibility)
-from ornstein_uhlenbeck import generate_ou_noise
-from noise_models import generate_double_OU_noise
-from coherence import (
-    compute_ensemble_coherence, 
+# Updated imports: use spin_decoherence package directly
+from spin_decoherence.noise import generate_ou_noise, generate_double_OU_noise
+from spin_decoherence.physics import (
+    compute_ensemble_coherence,
     compute_hahn_echo_coherence,
-    compute_phase_accumulation
+    compute_phase_accumulation,
 )
-from fitting import fit_coherence_decay_with_offset
-from config import CONSTANTS
+from spin_decoherence.analysis import fit_coherence_decay_with_offset
+from spin_decoherence.config import CONSTANTS
 
 
 def load_profiles(yaml_file='profiles.yaml'):
@@ -109,11 +108,15 @@ def run_single_case_improved(
         params = SimulationParameters(system=material_name, target_regime='all')
         
         # Use validated parameters if significantly different
+        # CRITICAL: Always use T_max from profiles.yaml (user-specified)
+        # Validation may suggest different T_max, but profiles.yaml takes precedence
         if comparison['recommendations']:
             if verbose:
-                print("⚠️  Using validated parameters instead of profile values")
+                print("⚠️  Using validated B_rms, but keeping T_max from profiles.yaml")
             B_rms = params.sigma_z
-            T_max = params.total_time
+            # CRITICAL FIX: Always use T_max from profiles.yaml, not validation
+            # profiles.yaml has been carefully tuned (e.g., 50 ms for Si:P QS regime)
+            T_max = T_max_original
             # Adjust ensemble size if memory is an issue
             if params.validate()['warnings']:
                 M = min(M, 200)  # Reduce ensemble size
@@ -206,11 +209,12 @@ def run_single_case_improved(
             # Extract T2
             if use_improved_t2:
                 T2, T2_error, fit_info = t2_extractor.extract_T2_auto(
-                    time_points, coherence_series, coherence_std_series
+                    time_points, coherence_series, coherence_std_series,
+                    tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms, M=M
                 )
             else:
                 # Fallback to existing method
-                from fitting import fit_coherence_decay
+                from spin_decoherence.analysis import fit_coherence_decay
                 fit_result = fit_coherence_decay(
                     time_points, coherence_series,
                     tau_c=tau_c, gamma_e=gamma_e, B_rms=B_rms
@@ -242,7 +246,7 @@ def run_single_case_improved(
                 'T2_lower': float(T2_lower) if T2_lower is not None else None,
                 'T2_upper': float(T2_upper) if T2_upper is not None else None,
                 'regime': regime,
-                'model': fit_info.get('model', 'unknown') if use_improved_t2 else 'exponential',
+                'model': fit_info.get('model', fit_info.get('method_used', 'unknown')) if use_improved_t2 else 'exponential',
                 'metadata': metadata,
             }
             

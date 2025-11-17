@@ -7,7 +7,7 @@ power spectral density for Ornstein-Uhlenbeck noise.
 
 import numpy as np
 import matplotlib.pyplot as plt
-from ornstein_uhlenbeck import generate_ou_noise
+from spin_decoherence.noise import generate_ou_noise
 from visualize import plot_ou_psd_verification
 
 

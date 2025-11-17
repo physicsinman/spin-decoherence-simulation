@@ -13,30 +13,35 @@ materials:
     
     # Single OU noise model
     OU:
-      B_rms: 5.0e-6   # Tesla, RMS magnetic field fluctuation
+      B_rms: 3.21e-9   # Tesla, RMS magnetic field fluctuation (3.21 nT, corrected from 5 μT)
       tau_c_min: 0.1e-6    # seconds (avoid extreme MN regime)
-      tau_c_max: 100.0e-6  # seconds
-      tau_c_num: 25        # Sufficient data points
+      tau_c_max: 500.0e-6  # seconds (increased for better coverage)
+      tau_c_num: 30        # Increased data points
       notes: "Charge noise from surface/interface"
     
     # Double OU noise model (two timescales)
     Double_OU:
       # Fast component (residual hyperfine from 29Si, 4.7%)
-      B_rms1: 3.5e-6    # Tesla
+      B_rms1: 2.27e-9    # Tesla (3.21 nT / √2, corrected)
       tau_c1: 0.05e-6   # seconds (fixed, ~50 ns)
       
       # Slow component (charge noise)
-      B_rms2: 3.5e-6    # Tesla
+      B_rms2: 2.27e-9    # Tesla (3.21 nT / √2, corrected)
       tau_c2_min: 0.5e-6   # seconds
-      tau_c2_max: 50.0e-6  # seconds (reduced range)
-      tau_c2_num: 25       # Sufficient data points
+      tau_c2_max: 100.0e-6  # seconds (increased range)
+      tau_c2_num: 30       # Increased data points
       
       notes: "Fast: residual hyperfine, Slow: charge fluctuations"
     
     # Simulation parameters
-    T_max: 30.0e-6  # seconds, max simulation time (30 μs)
-    dt: 0.2e-9      # seconds, time step (0.2 ns)
-    M: 750          # ensemble size (balanced for memory)
+    # CRITICAL: QS regime requires T_max >> T2_th for accurate fitting
+    # For Si:P with T2* ≈ 2.5 ms (expected), need T_max >= 25 ms (10×T2*, sufficient)
+    # MEMORY FIX: Reduced T_max from 50ms to 25ms and increased dt to 0.2ns
+    # This gives N_steps = 125M (manageable) while maintaining accuracy
+    # With tau_c_min = 0.1μs, dt = 0.2ns gives dt/tau_c = 0.002 (500 samples per tau_c, sufficient)
+    T_max: 25.0e-3  # seconds, max simulation time (25 ms, 10×T2* for QS regime)
+    dt: 0.2e-9       # seconds, time step (0.2 ns, balanced for accuracy and memory)
+    M: 300          # ensemble size (reduced for memory efficiency, still sufficient for statistics)
     seed: 42
     
     # Literature references
@@ -58,10 +63,10 @@ materials:
     
     # Single OU noise model
     OU:
-      B_rms: 8.0e-6     # Tesla, Overhauser field fluctuation
+      B_rms: 8.0e-6     # Tesla, Overhauser field fluctuation (correct for GaAs)
       tau_c_min: 0.1e-6    # seconds (avoid extreme MN regime)
       tau_c_max: 10.0e-6    # seconds (10 μs)
-      tau_c_num: 25        # Sufficient data points
+      tau_c_num: 30        # Increased data points
       notes: "Nuclear spin flip-flop dynamics"
     
     # Double OU noise model
@@ -79,8 +84,8 @@ materials:
       notes: "Fast: near nuclei, Slow: far nuclei"
     
     # Simulation parameters
-    T_max: 30.0e-6    # seconds (30 μs)
-    dt: 0.2e-9        # seconds (0.2 ns)
+    T_max: 30.0e-6    # seconds (30 μs, sufficient for GaAs)
+    dt: 0.1e-9         # seconds (0.1 ns, sufficient for accuracy and memory efficiency)
     M: 750            # ensemble size (balanced for memory)
     seed: 43
     

@@ -9,7 +9,7 @@ import json
 import os
 import glob
 from visualize import create_summary_plots
-from config import CONSTANTS
+from spin_decoherence.config import CONSTANTS
 
 def find_latest_results(results_dir='results'):
     """Find the latest simulation results file."""

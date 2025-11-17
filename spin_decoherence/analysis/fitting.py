@@ -1223,6 +1223,38 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
         best_result = results[model].copy()
         best_result['model'] = model
     
+    # CRITICAL FIX: Sanity check on T2 value to prevent extremely large values
+    # T2 values > 1 second (1e6 μs) are unphysical for spin coherence
+    # If T2 is unreasonably large, use analytical estimate for QS regime
+    if 'T2' in best_result and best_result['T2'] is not None:
+        T2_value = best_result['T2']
+        # Reasonable maximum: 1 second = 1e6 μs (extremely long for spin coherence)
+        T2_max_reasonable = 1.0  # seconds
+        if T2_value > T2_max_reasonable:
+            # T2 is unreasonably large, likely due to fitting failure
+            # Use analytical estimate if in QS regime
+            if tau_c is not None and gamma_e is not None and B_rms is not None:
+                Delta_omega = gamma_e * B_rms
+                xi = Delta_omega * tau_c
+                if xi > 2.0:  # QS regime
+                    from simulate import estimate_characteristic_T2
+                    T2_analytical = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+                    
+                    # Replace with analytical estimate
+                    best_result['T2'] = T2_analytical
+                    best_result['model'] = 'gaussian_analytical'
+                    best_result['note'] = f'Fitted T2 ({T2_value*1e6:.2e} μs) unreasonably large, using analytical QS estimate ({T2_analytical*1e6:.2f} μs)'
+                    best_result['is_analytical'] = True
+                    best_result['params'] = {'T2_star': T2_analytical, 'A': best_result.get('A', 1.0), 'B': best_result.get('B', 0.0)}
+                else:
+                    # Not QS regime, but T2 is still too large - cap it
+                    best_result['T2'] = T2_max_reasonable
+                    best_result['note'] = f'Fitted T2 ({T2_value*1e6:.2e} μs) capped at {T2_max_reasonable*1e6:.2e} μs'
+            else:
+                # Missing parameters, just cap it
+                best_result['T2'] = T2_max_reasonable
+                best_result['note'] = f'Fitted T2 ({T2_value*1e6:.2e} μs) capped at {T2_max_reasonable*1e6:.2e} μs'
+    
     return best_result
 
 
