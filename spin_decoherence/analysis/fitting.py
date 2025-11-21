@@ -10,6 +10,9 @@ from scipy.optimize import curve_fit
 from scipy.stats import chi2
 from scipy import integrate
 
+# Import estimate_characteristic_T2 from spin_decoherence package (avoids circular import)
+from spin_decoherence.simulation.engine import estimate_characteristic_T2
+
 
 def gaussian_decay(t, T2_star):
     """
@@ -183,7 +186,6 @@ def select_fit_window(t, E_abs, E_se=None, eps=None, min_pts=20, tau_c=None, gam
         xi = Delta_omega * tau_c
         if xi > 2.0:  # Static/quasi-static regime
             # Estimate T2_th for static regime: T2 ≈ sqrt(2)/Delta_omega
-            from simulate import estimate_characteristic_T2
             T2_th = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
             # Limit to initial decay: t < 3*T2_th (relaxed from 2*T2_th for bootstrap CI)
             # This captures the Gaussian decay before it reaches noise floor
@@ -980,6 +982,86 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
         - 'A': scale factor
         - 'B': offset
     """
+    # ===== CRITICAL FIX 1: Detect flat curves before fitting =====
+    # If curve shows negligible decay, use analytical estimate immediately
+    # FIXED: Use initial-to-final decay ratio instead of range/mean
+    # This correctly identifies flat curves even when noise causes small fluctuations
+    if len(E_magnitude) > 1:
+        E_initial = E_magnitude[0]
+        E_final = E_magnitude[-1]
+        # Use relative decay: (initial - final) / initial
+        # This measures actual decay, not just noise fluctuations
+        relative_decay = (E_initial - E_final) / E_initial if E_initial > 0 else 0
+    else:
+        relative_decay = 0
+    
+    # RESEARCH NOTE: For dissertation, we use strict threshold (1%) to ensure
+    # only truly flat curves use analytical estimates. This allows proper
+    # validation of motional narrowing theory through actual fitting.
+    # The previous approach (range/mean) was incorrectly classifying decay curves
+    # as flat when noise caused small fluctuations around a decaying trend.
+    # CRITICAL FIX: For echo, use very strict threshold (0.1%) to catch nearly-flat curves
+    # Even small noise can cause relative_decay > 0.5%, but if decay is truly negligible,
+    # we should use analytical estimate to avoid underestimating T2_echo
+    decay_threshold = 0.001 if is_echo else 0.01  # Echo: 0.1%, FID: 1%
+    if relative_decay < decay_threshold:  # Less than threshold decay from initial to final
+        # Curve is essentially flat - fitting will fail
+        if tau_c is not None and gamma_e is not None and B_rms is not None:
+            if is_echo:
+                # CRITICAL FIX: For echo, if decay is negligible, T2_echo must be >> t_max
+                # E(t_max) ≈ 1.0 means T2 >> t_max
+                # Use conservative estimate: T2_echo = 10 * t_max (minimum)
+                # This ensures gain calculation is physically reasonable
+                t_max = t[-1] if len(t) > 0 else 0
+                if t_max > 0:
+                    # For echo that doesn't decay, T2 must be much larger than simulation time
+                    # Use extrapolation: E(t_max) = exp(-t_max/T2) ≈ 1.0
+                    # If E(t_max) > 0.99, then T2 > t_max / (-ln(0.99)) ≈ 100 * t_max
+                    # Use conservative estimate: T2 = 50 * t_max (minimum)
+                    E_final = E_magnitude[-1] if len(E_magnitude) > 0 else 1.0
+                    if E_final > 0.99:
+                        # Echo barely decayed - T2 must be very large
+                        # 물리학적으로 타당한 추정:
+                        # E(t_max) = exp(-t_max/T2) ≈ 1.0
+                        # T2 >> t_max
+                        # 하지만 T_FID와의 관계도 고려해야 함
+                        # 보수적으로: T2_echo >= 100 * t_max (최소)
+                        # 하지만 T_FID가 t_max보다 크면, T2_echo >= 50 * T_FID도 고려
+                        # 실제로는 echo가 거의 decay하지 않으므로 매우 큰 값이어야 함
+                        T2_analytical = max(100.0 * t_max, 50.0e-6)  # 최소 50 μs, 이상적으로 100×t_max
+                        # Cap at reasonable maximum (50 ms) to avoid unphysical values
+                        T2_analytical = min(T2_analytical, 50.0e-3)
+                    else:
+                        # Some decay but still flat - use extrapolation
+                        T2_analytical = t_max / (-np.log(E_final)) if E_final > 0 else 100.0e-6
+                        T2_analytical = max(T2_analytical, 20.0 * t_max)  # Conservative minimum
+                        T2_analytical = min(T2_analytical, 50.0e-3)  # Cap at 50 ms
+                else:
+                    # Fallback to FID estimate if t_max is invalid
+                    T2_analytical = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+            else:
+                # For FID, use standard analytical estimate
+                T2_analytical = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+            
+            return {
+                'T2': T2_analytical,
+                'model': 'analytical_flat_curve',
+                'note': f'Decay negligible ({relative_decay*100:.1f}%), using analytical estimate',
+                'R2': np.nan,
+                'AIC': np.nan,
+                'BIC': np.nan,
+                'RMSE': np.nan,
+                'is_analytical': True,
+                'params': {'T2': T2_analytical, 'A': 1.0, 'B': 0.0},
+                'A': 1.0,
+                'B': 0.0,
+                'fit_curve': None
+            }
+        else:
+            # No parameters for analytical estimate, return failure
+            return None
+    # ===== END CRITICAL FIX 1 =====
+    
     # Select fitting window: use echo-optimized window for echo signals
     if is_echo:
         t_fit, E_fit = select_echo_fit_window(t, E_magnitude, E_se=E_se,
@@ -1006,9 +1088,25 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
         def gaussian_with_offset(t, T2_star, A, B):
             return decay_with_offset(t, gaussian_decay, A, B, T2_star)
         
+        # ===== CRITICAL FIX 2: For QS regime, use analytical estimate as initial guess =====
+        # For QS regime, use analytical estimate as initial guess
+        if tau_c is not None and gamma_e is not None and B_rms is not None:
+            Delta_omega = gamma_e * B_rms
+            xi = Delta_omega * tau_c
+            if xi > 2.0:  # QS regime
+                T2_guess_qs = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+                # Use analytical estimate as initial guess
+                p0_gauss = [T2_guess_qs, 1.0, 0.0]
+            else:
+                # Original initial guess
+                p0_gauss = [t_fit[-1] / 2, 1.0, 0.0]
+        else:
+            p0_gauss = [t_fit[-1] / 2, 1.0, 0.0]
+        # ===== END CRITICAL FIX 2 =====
+        
         # Use weighted least squares if weights are available
         fit_kwargs = {
-            'p0': [t_fit[-1] / 2, 1.0, 0.0],
+            'p0': p0_gauss,  # Use modified initial guess
             'bounds': ([0, 0.9, 0], [np.inf, 1.1, 0.05])
         }
         if weights is not None:
@@ -1162,15 +1260,48 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
         if not valid_results:
             return None
         
-        # For static regime, prefer Gaussian model (theoretically correct)
-        # Static regime: ξ >> 1, decay is Gaussian: E(t) ≈ exp[-(t/T2)^2]
+        # DISSERTATION FIX: Regime-aware model selection
+        # - MN regime (ξ < 1): Prefer exponential (theoretically correct: T2 ∝ 1/τ_c)
+        # - Static regime (ξ > 2): Prefer Gaussian (theoretically correct: E(t) ≈ exp[-(t/T2)^2])
         criterion = 'BIC' if use_bic else 'AIC'
         
         if tau_c is not None and gamma_e is not None and B_rms is not None:
             Delta_omega = gamma_e * B_rms
             xi = Delta_omega * tau_c
-            if xi > 2.0 and 'gaussian' in valid_results:
-                # In static regime, Gaussian is theoretically correct
+            
+            if xi < 1.0 and 'exponential' in valid_results:
+                # Motional narrowing regime: exponential is theoretically correct
+                # T2 = 1/(Δω²τ_c), so log(T2) = -log(τ_c) + const (slope = -1)
+                exponential_result = valid_results['exponential']
+                
+                # Find best model by criterion
+                best_by_criterion = min(valid_results.keys(), 
+                                       key=lambda k: valid_results[k].get(criterion, 
+                                                                        valid_results[k].get('RMSE', 
+                                                                                             valid_results[k]['AIC'])))
+                best_criterion_value = valid_results[best_by_criterion].get(criterion, 
+                                                                           valid_results[best_by_criterion].get('RMSE', 
+                                                                                                                valid_results[best_by_criterion]['AIC']))
+                exponential_criterion_value = exponential_result.get(criterion, 
+                                                                     exponential_result.get('RMSE', 
+                                                                                            exponential_result['AIC']))
+                
+                # Use exponential if it's within 20% of best, or if R2 > 0.9
+                # More lenient than Gaussian because MN regime can have noise
+                if (exponential_result.get('R2', 0) > 0.9 or 
+                    (best_criterion_value != 0 and abs(exponential_criterion_value - best_criterion_value) / abs(best_criterion_value) < 0.2)):
+                    best_model = 'exponential'
+                    best_result = exponential_result.copy()
+                    best_result['model'] = 'exponential'
+                    best_result['selection_criterion'] = f'{criterion} (MN regime: preferred exponential)'
+                else:
+                    # Use best by criterion
+                    best_model = best_by_criterion
+                    best_result = valid_results[best_model].copy()
+                    best_result['model'] = best_model
+                    best_result['selection_criterion'] = criterion
+            elif xi > 2.0 and 'gaussian' in valid_results:
+                # Static regime: Gaussian is theoretically correct
                 # Only use Gaussian if it's reasonable (R2 > 0.9 or close to best)
                 gaussian_result = valid_results['gaussian']
                 
@@ -1200,7 +1331,7 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
                     best_result['model'] = best_model
                     best_result['selection_criterion'] = criterion
             else:
-                # Normal model selection
+                # Normal model selection (crossover regime or no regime info)
                 best_model = min(valid_results.keys(), 
                                 key=lambda k: valid_results[k].get(criterion, 
                                                                    valid_results[k].get('RMSE', 
@@ -1223,6 +1354,23 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
         best_result = results[model].copy()
         best_result['model'] = model
     
+    # CRITICAL FIX: Check for negative R² (fitting failure)
+    # Negative R² means fit is worse than horizontal line (complete failure)
+    if 'R2' in best_result and best_result['R2'] is not None:
+        R2_value = best_result['R2']
+        if R2_value < 0:
+            # Fitting completely failed - use analytical estimate
+            if tau_c is not None and gamma_e is not None and B_rms is not None:
+                T2_analytical = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+                best_result['T2'] = T2_analytical
+                best_result['model'] = f"{best_result.get('model', 'unknown')}_analytical"
+                best_result['note'] = f'Fitting failed (R² = {R2_value:.4f}), using analytical estimate'
+                best_result['R2'] = np.nan  # Mark as analytical (no fit quality)
+                best_result['is_analytical'] = True
+            else:
+                # No parameters for analytical estimate - return None to indicate failure
+                return None
+    
     # CRITICAL FIX: Sanity check on T2 value to prevent extremely large values
     # T2 values > 1 second (1e6 μs) are unphysical for spin coherence
     # If T2 is unreasonably large, use analytical estimate for QS regime
@@ -1237,7 +1385,6 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
                 Delta_omega = gamma_e * B_rms
                 xi = Delta_omega * tau_c
                 if xi > 2.0:  # QS regime
-                    from simulate import estimate_characteristic_T2
                     T2_analytical = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
                     
                     # Replace with analytical estimate

@@ -73,9 +73,23 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
     # Fit echo decay
     fit_result_echo = fit_coherence_decay_with_offset(
         tau_echo, E_echo_abs, E_se=E_echo_se, model='auto',
+        is_echo=True,  # CRITICAL: Mark as echo for proper window selection
         tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms'],
         M=params['M']
     )
+    
+    # Bootstrap CI for echo T2 - IMPROVED
+    T2_echo_ci = None
+    if params.get('compute_bootstrap', True) and E_echo_abs_all.size > 0:
+        try:
+            from spin_decoherence.analysis.bootstrap import bootstrap_T2
+            T2_mean, T2_echo_ci, _ = bootstrap_T2(
+                tau_echo, E_echo_abs_all, E_se=E_echo_se, B=500, verbose=False,
+                tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms']
+            )
+        except Exception as e:
+            if verbose:
+                print(f"  ⚠️  Echo bootstrap CI failed: {e}")
     
     # Combine results
     result = fid_result.copy()
@@ -87,6 +101,7 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
         'E_echo_se': E_echo_se.tolist(),
         'E_echo_abs_all': E_echo_abs_all.tolist() if E_echo_abs_all.size > 0 else [],
         'fit_result_echo': fit_result_echo,
+        'T2_echo_ci': T2_echo_ci,  # CRITICAL: Add CI to result
         't_fid': result['t'].tolist(),
         'E_fid_abs': result['E_abs'].tolist(),
         'E_fid_se': result['E_se'].tolist(),

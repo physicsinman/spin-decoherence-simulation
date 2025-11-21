@@ -1,47 +1,29 @@
 # Legacy Files
 
-This directory contains backup copies of original root-level files that have been converted to compatibility wrappers.
+이 폴더에는 더 이상 사용되지 않는 레거시 파일들이 보관되어 있습니다.
 
-## What Changed
+## 📁 구조
 
-The root-level files (`ornstein_uhlenbeck.py`, `config.py`, `units.py`, `noise_models.py`, `coherence.py`, `fitting.py`) have been converted to compatibility wrappers that re-export functions from the `spin_decoherence` package.
+- **루트 레벨**: 레거시 메인 스크립트 및 모듈
+  - `main.py` - 레거시 진입점
+  - `simulate.py` - 레거시 시뮬레이션
+  - `visualize.py` - 레거시 시각화
+  - `coherence.py`, `fitting.py`, `ornstein_uhlenbeck.py` 등 - spin_decoherence 패키지로 이동됨
 
-## Migration Guide
+- **scripts_one_time/**: 일회성 작업 스크립트들
+  - 개선 작업 스크립트들
+  - 리런 스크립트들
+  - 진단/검증 스크립트들
 
-### Old Import (Still Works)
-```python
-from ornstein_uhlenbeck import generate_ou_noise
-from config import CONSTANTS
-from units import Units
-from coherence import compute_ensemble_coherence
-from fitting import fit_coherence_decay
-```
+## ⚠️ 주의
 
-### New Import (Recommended)
-```python
-from spin_decoherence.noise import generate_ou_noise
-from spin_decoherence.config import CONSTANTS, Units
-from spin_decoherence.physics import compute_ensemble_coherence
-from spin_decoherence.analysis import fit_coherence_decay
-```
+이 파일들은 **더 이상 사용되지 않습니다**.
+현재 코드베이스는 `spin_decoherence/` 패키지를 사용합니다.
 
-## Benefits
+## 📚 참고
 
-1. **No Breaking Changes**: Existing code continues to work
-2. **Single Source of Truth**: All functionality is in `spin_decoherence` package
-3. **Easier Maintenance**: Only one version of each function to maintain
-4. **Better Organization**: Clear package structure
-
-## Files Converted
-
-- `ornstein_uhlenbeck.py` → wrapper for `spin_decoherence.noise`
-- `config.py` → wrapper for `spin_decoherence.config`
-- `units.py` → wrapper for `spin_decoherence.config`
-- `noise_models.py` → wrapper for `spin_decoherence.noise`
-- `coherence.py` → wrapper for `spin_decoherence.physics`
-- `fitting.py` → wrapper for `spin_decoherence.analysis`
-
-## Date
-
-November 2024
-
+현재 사용 중인 파일들은 루트 디렉토리의 다음 파일들입니다:
+- `run_all_simulations.py` - 메인 실행 스크립트
+- `run_fid_sweep.py`, `run_echo_sweep.py` - 시뮬레이션 실행
+- `generate_dissertation_plots.py` - Figure 생성
+- `spin_decoherence/` - 핵심 패키지

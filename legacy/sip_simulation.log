@@ -1,0 +1,226 @@
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (31250000.00 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (23296964.18 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (17367953.28 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (12947858.73 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (9652665.63 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (7196089.77 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (5364705.46 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (3999403.23 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/improved_t2_extraction.py:314: UserWarning: T2 value (2981566.52 μs) capped at 1000000.00 μs
+  warnings.warn(f"T2 value ({T2*1e6:.2f} μs) capped at {T2_max_reasonable*1e6:.2f} μs")
+================================================================================
+Si_P 전체 시뮬레이션 실행
+================================================================================
+
+설정:
+  • Material: Si_P
+  • Noise models: OU, Double_OU
+  • Sequences: FID, Hahn
+  • Parameter validation: ✓
+  • Memory-efficient: ✓
+  • Improved T2 extraction: ✓
+
+예상 시간:
+  • Si_P OU: ~14시간
+  • Si_P Double_OU: ~1.8시간
+  • 총합: ~16시간
+
+시작합니다...
+
+======================================================================
+IMPROVED MATERIAL COMPARISON SIMULATION
+======================================================================
+
+Settings:
+  Parameter validation: ✓
+  Adaptive simulation: ✓
+  Improved T2 extraction: ✓
+======================================================================
+
+============================================================
+Running (Improved): Si_P | OU | FID
+============================================================
+
+[1/5] Parameter Validation...
+
+============================================================
+Parameter Comparison for Si_P
+============================================================
+
+B_rms Comparison:
+  Literature (required): 3.214 nT
+  Current simulation:   3.210 nT
+  Ratio: 1.0×
+
+T_max Comparison:
+  Required (≥5×T2*): 12500.0 µs
+  Current simulation:  5000.0 µs
+  Ratio: 0.40×
+
+💡 RECOMMENDATIONS:
+   - T_max is 2.5× too short. Update to ≥ 12500.0 µs
+============================================================
+
+⚠️  Using validated B_rms, but keeping T_max from profiles.yaml
+
+============================================================
+=== Si_P Parameter Validation ===
+============================================================
+Target T2*: 2500.000 µs = 2.500 ms
+Noise amplitude σ_z: 3.214 nT = 0.003214 µT
+Total simulation time: 25000.0 µs = 25.000 ms
+Time step dt: 1.000 ns
+Number of time steps: 25,000,000
+τ_c range: 0.100 - 500.0 µs
+
+Estimated memory:
+  Per ensemble: 0.20 GB
+  Total (100 ensembles): 20.00 GB
+
+⚠️  WARNINGS:
+   - Memory requirement (20.00 GB) exceeds typical limits!
+
+💡 RECOMMENDATIONS:
+   - Consider: 1) Shorter total_time, 2) Larger dt, 3) Fewer ensembles
+
+✗ Some validation checks failed
+============================================================
+
+[2/5] Using Memory-Efficient Simulation (Adaptive disabled for full decay observation)...
+[3/5] Using Improved T2 Extraction...
+
+  [1/30] tau_c = 0.100 µs
+      Regime: motional_narrowing
+      T2_expected = 31250000.00 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [2/30] tau_c = 0.134 µs
+      Regime: motional_narrowing
+      T2_expected = 23296964.18 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [3/30] tau_c = 0.180 µs
+      Regime: motional_narrowing
+      T2_expected = 17367953.28 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [4/30] tau_c = 0.241 µs
+      Regime: motional_narrowing
+      T2_expected = 12947858.73 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [5/30] tau_c = 0.324 µs
+      Regime: motional_narrowing
+      T2_expected = 9652665.63 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [6/30] tau_c = 0.434 µs
+      Regime: motional_narrowing
+      T2_expected = 7196089.77 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [7/30] tau_c = 0.583 µs
+      Regime: motional_narrowing
+      T2_expected = 5364705.46 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [8/30] tau_c = 0.781 µs
+      Regime: motional_narrowing
+      T2_expected = 3999403.23 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [9/30] tau_c = 1.048 µs
+      Regime: motional_narrowing
+      T2_expected = 2981566.52 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+
+  [10/30] tau_c = 1.406 µs
+      Regime: motional_narrowing
+      T2_expected = 2222766.35 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+      Using analytical CI (online mode: no ensemble data for bootstrap)
+
+  [11/30] tau_c = 1.886 µs
+      Regime: motional_narrowing
+      T2_expected = 1657078.66 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+      Using analytical CI (online mode: no ensemble data for bootstrap)
+
+  [12/30] tau_c = 2.530 µs
+      Regime: motional_narrowing
+      T2_expected = 1235356.87 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+      Using analytical CI (online mode: no ensemble data for bootstrap)
+
+  [13/30] tau_c = 3.393 µs
+      Regime: motional_narrowing
+      T2_expected = 920962.07 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+      Using analytical CI (online mode: no ensemble data for bootstrap)
+
+  [14/30] tau_c = 4.552 µs
+      Regime: motional_narrowing
+      T2_expected = 686579.85 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+      Using analytical CI (online mode: no ensemble data for bootstrap)
+
+  [15/30] tau_c = 6.105 µs
+      Regime: motional_narrowing
+      T2_expected = 511847.24 µs
+      T_max_adaptive = 26214.40 µs (extended from 5000.00 µs)
+      [MEMORY LIMIT] T_max capped at 26214.40 µs due to memory constraints
+      [MEMORY] Estimated memory: 58.6 GB
+      [MEMORY] Using online mode (bootstrap will use analytical estimate)
+      Using analytical CI (online mode: no ensemble data for bootstrap)
+
+  [16/30] tau_c = 8.190 µs

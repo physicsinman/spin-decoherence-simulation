@@ -48,3 +48,5 @@ results/
 .DS_Store
 Thumbs.db
 
+legacy/*.zip
+legacy/아카이브*.zip

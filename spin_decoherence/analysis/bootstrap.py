@@ -60,15 +60,17 @@ def bootstrap_T2(t, E_abs_all, E_se=None, B=500, rng=None, verbose=False,
     # CRITICAL FIX: For static regime, use per-sample fitting window to avoid degenerate CI
     # In static regime, fixed window causes all bootstrap samples to produce identical T2
     # Solution: Allow each bootstrap sample to select its own fitting window
+    # IMPROVED: Use per-sample window for better bootstrap variance, especially in static/crossover regimes
     use_per_sample_window = False
     if tau_c is not None and gamma_e is not None and B_rms is not None:
         Delta_omega = gamma_e * B_rms
         xi = Delta_omega * tau_c
-        # Static regime: use per-sample window
-        if xi > 2.0:
+        # Use per-sample window for static and crossover regimes (ξ > 0.5)
+        # This ensures better bootstrap variance and avoids degenerate CI
+        if xi > 0.5:  # Changed from 2.0 to 0.5 to include crossover regime
             use_per_sample_window = True
             if verbose:
-                print(f"  Static regime detected (ξ = {xi:.3f} > 2.0): using per-sample fitting window")
+                print(f"  Regime detected (ξ = {xi:.3f} > 0.5): using per-sample fitting window for better bootstrap variance")
     
     # Select fitting window for original data (if not using per-sample window)
     fit_window_idx = None
@@ -143,7 +145,32 @@ def bootstrap_T2(t, E_abs_all, E_se=None, B=500, rng=None, verbose=False,
     
     # Compute confidence interval (95%)
     T2_mean = np.mean(vals)
+    T2_std = np.std(vals, ddof=1)
+    
+    # Check for degenerate CI (all samples produce same value)
+    # CRITICAL FIX: Relax degenerate condition to allow more bootstrap samples through
+    # Use relative std instead of absolute std to account for different T2 scales
+    T2_std_relative = T2_std / T2_mean if T2_mean > 0 else 0
+    
+    if T2_std == 0 or (T2_std_relative < 1e-6 and len(np.unique(vals)) < 3):
+        if verbose:
+            print(f"  Warning: Degenerate bootstrap CI (std = {T2_std:.2e}, std_rel = {T2_std_relative:.2e}, unique values = {len(np.unique(vals))})")
+            print(f"  This can happen in static regime or when fitting window is too restrictive")
+        # Return None to indicate degenerate CI
+        return T2_mean, None, vals
+    
+    # Compute percentile-based CI
     T2_ci = (np.percentile(vals, 2.5), np.percentile(vals, 97.5))
+    
+    # Check if CI is too narrow (likely degenerate)
+    ci_width = T2_ci[1] - T2_ci[0]
+    ci_width_relative = ci_width / T2_mean if T2_mean > 0 else 0
+    
+    # If CI width is less than 0.01% of mean, treat as degenerate
+    if ci_width_relative < 1e-4:
+        if verbose:
+            print(f"  Warning: CI width too narrow ({ci_width_relative*100:.4f}%), treating as degenerate")
+        return T2_mean, None, vals
     
     return T2_mean, T2_ci, vals
 

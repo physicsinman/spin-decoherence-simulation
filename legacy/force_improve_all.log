@@ -1,0 +1,326 @@
+================================================================================
+Force Improve All: 최고 품질 목표
+================================================================================
+
+기준: R² < 0.98인 모든 포인트 재시뮬레이션
+N_traj = 10000
+T_max = Maximum (최고 품질)
+
+⚠️  This will take MANY hours!
+
+Found 16 points with R² < 0.98
+Estimated time: ~13.3 hours (increased T_max and N_traj)
+
+Starting re-simulation...
+
+
+[1/16] τc = 0.048 μs (ξ = 0.418)
+  Previous R² = 0.9789
+  dt = 0.48 ns, T_max = 13.58 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 0.05 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 4.184e-01
+[DEBUG] T2_th (estimated) ~ 0.32 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):   0%|          | 1/10000 [00:00<42:20,  3.94it/s]Computing FID (OU):   2%|▏         | 156/10000 [00:00<00:17, 559.91it/s]Computing FID (OU):   3%|▎         | 315/10000 [00:00<00:10, 908.26it/s]Computing FID (OU):   5%|▍         | 470/10000 [00:00<00:08, 1115.46it/s]Computing FID (OU):   6%|▋         | 629/10000 [00:00<00:07, 1264.68it/s]Computing FID (OU):   8%|▊         | 786/10000 [00:00<00:06, 1359.51it/s]Computing FID (OU):   9%|▉         | 944/10000 [00:00<00:06, 1426.27it/s]Computing FID (OU):  11%|█         | 1101/10000 [00:00<00:06, 1469.65it/s]Computing FID (OU):  13%|█▎        | 1261/10000 [00:01<00:05, 1509.03it/s]Computing FID (OU):  14%|█▍        | 1417/10000 [00:01<00:05, 1475.08it/s]Computing FID (OU):  16%|█▌        | 1572/10000 [00:01<00:05, 1494.96it/s]Computing FID (OU):  17%|█▋        | 1728/10000 [00:01<00:05, 1511.49it/s]Computing FID (OU):  19%|█▉        | 1881/10000 [00:01<00:05, 1480.31it/s]Computing FID (OU):  20%|██        | 2031/10000 [00:01<00:05, 1395.15it/s]Computing FID (OU):  22%|██▏       | 2173/10000 [00:01<00:05, 1370.46it/s]Computing FID (OU):  23%|██▎       | 2327/10000 [00:01<00:05, 1416.65it/s]Computing FID (OU):  25%|██▍       | 2485/10000 [00:01<00:05, 1461.01it/s]Computing FID (OU):  26%|██▋       | 2642/10000 [00:02<00:04, 1492.57it/s]Computing FID (OU):  28%|██▊       | 2799/10000 [00:02<00:04, 1514.24it/s]Computing FID (OU):  30%|██▉       | 2957/10000 [00:02<00:04, 1531.48it/s]Computing FID (OU):  31%|███       | 3114/10000 [00:02<00:04, 1542.36it/s]Computing FID (OU):  33%|███▎      | 3272/10000 [00:02<00:04, 1551.28it/s]Computing FID (OU):  34%|███▍      | 3431/10000 [00:02<00:04, 1561.94it/s]Computing FID (OU):  36%|███▌      | 3589/10000 [00:02<00:04, 1564.89it/s]Computing FID (OU):  37%|███▋      | 3748/10000 [00:02<00:03, 1569.89it/s]Computing FID (OU):  39%|███▉      | 3906/10000 [00:02<00:03, 1559.71it/s]Computing FID (OU):  41%|████      | 4063/10000 [00:02<00:03, 1534.42it/s]Computing FID (OU):  42%|████▏     | 4217/10000 [00:03<00:03, 1527.07it/s]Computing FID (OU):  44%|████▎     | 4372/10000 [00:03<00:03, 1532.22it/s]Computing FID (OU):  45%|████▌     | 4528/10000 [00:03<00:03, 1538.34it/s]Computing FID (OU):  47%|████▋     | 4684/10000 [00:03<00:03, 1542.49it/s]Computing FID (OU):  48%|████▊     | 4839/10000 [00:03<00:03, 1539.75it/s]Computing FID (OU):  50%|████▉     | 4994/10000 [00:03<00:03, 1538.79it/s]Computing FID (OU):  51%|█████▏    | 5148/10000 [00:03<00:03, 1536.51it/s]Computing FID (OU):  53%|█████▎    | 5303/10000 [00:03<00:03, 1540.51it/s]Computing FID (OU):  55%|█████▍    | 5459/10000 [00:03<00:02, 1544.62it/s]Computing FID (OU):  56%|█████▌    | 5617/10000 [00:03<00:02, 1554.24it/s]Computing FID (OU):  58%|█████▊    | 5774/10000 [00:04<00:02, 1557.94it/s]Computing FID (OU):  59%|█████▉    | 5932/10000 [00:04<00:02, 1563.77it/s]Computing FID (OU):  61%|██████    | 6091/10000 [00:04<00:02, 1569.20it/s]Computing FID (OU):  62%|██████▏   | 6248/10000 [00:04<00:02, 1567.74it/s]Computing FID (OU):  64%|██████▍   | 6405/10000 [00:04<00:02, 1567.58it/s]Computing FID (OU):  66%|██████▌   | 6562/10000 [00:04<00:02, 1568.03it/s]Computing FID (OU):  67%|██████▋   | 6719/10000 [00:04<00:02, 1558.70it/s]Computing FID (OU):  69%|██████▉   | 6875/10000 [00:04<00:02, 1553.70it/s]Computing FID (OU):  70%|███████   | 7031/10000 [00:04<00:01, 1552.18it/s]Computing FID (OU):  72%|███████▏  | 7187/10000 [00:04<00:01, 1550.53it/s]Computing FID (OU):  73%|███████▎  | 7343/10000 [00:05<00:01, 1381.00it/s]Computing FID (OU):  75%|███████▍  | 7498/10000 [00:05<00:01, 1425.28it/s]Computing FID (OU):  77%|███████▋  | 7652/10000 [00:05<00:01, 1456.41it/s]Computing FID (OU):  78%|███████▊  | 7805/10000 [00:05<00:01, 1477.26it/s]Computing FID (OU):  80%|███████▉  | 7961/10000 [00:05<00:01, 1500.65it/s]Computing FID (OU):  81%|████████  | 8118/10000 [00:05<00:01, 1518.40it/s]Computing FID (OU):  83%|████████▎ | 8271/10000 [00:05<00:01, 1395.71it/s]Computing FID (OU):  84%|████████▍ | 8423/10000 [00:05<00:01, 1429.96it/s]Computing FID (OU):  86%|████████▌ | 8581/10000 [00:05<00:00, 1469.92it/s]Computing FID (OU):  87%|████████▋ | 8737/10000 [00:06<00:00, 1493.90it/s]Computing FID (OU):  89%|████████▉ | 8891/10000 [00:06<00:00, 1505.95it/s]Computing FID (OU):  90%|█████████ | 9044/10000 [00:06<00:00, 1512.50it/s]Computing FID (OU):  92%|█████████▏| 9200/10000 [00:06<00:00, 1523.59it/s]Computing FID (OU):  94%|█████████▎| 9357/10000 [00:06<00:00, 1536.36it/s]Computing FID (OU):  95%|█████████▌| 9514/10000 [00:06<00:00, 1545.59it/s]Computing FID (OU):  97%|█████████▋| 9669/10000 [00:06<00:00, 1544.52it/s]Computing FID (OU):  98%|█████████▊| 9824/10000 [00:06<00:00, 1545.42it/s]Computing FID (OU): 100%|█████████▉| 9980/10000 [00:06<00:00, 1549.22it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:06<00:00, 1465.58it/s]
+/Users/physicsinman/Library/Python/3.9/lib/python/site-packages/numpy/_core/fromnumeric.py:3596: RuntimeWarning: Mean of empty slice.
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/Users/physicsinman/Library/Python/3.9/lib/python/site-packages/numpy/_core/_methods.py:130: RuntimeWarning: invalid value encountered in divide
+  ret = um.true_divide(
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 17537.65it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 1.66e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.347, 0.347] μs
+  ✅ R² = 0.9780 (improvement: -0.0009, time: 0.1 min)
+  📊 Progress: 1/16, Remaining: ~0.0 hours
+
+[2/16] τc = 0.055 μs (ξ = 0.488)
+  Previous R² = 0.9685
+  dt = 0.55 ns, T_max = 11.65 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 0.06 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 4.878e-01
+[DEBUG] T2_th (estimated) ~ 0.29 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):   2%|▏         | 201/10000 [00:00<00:04, 2004.64it/s]Computing FID (OU):   4%|▍         | 402/10000 [00:00<00:04, 2000.48it/s]Computing FID (OU):   6%|▌         | 605/10000 [00:00<00:04, 2013.00it/s]Computing FID (OU):   8%|▊         | 811/10000 [00:00<00:04, 2030.80it/s]Computing FID (OU):  10%|█         | 1018/10000 [00:00<00:04, 2041.29it/s]Computing FID (OU):  12%|█▏        | 1223/10000 [00:00<00:04, 2034.80it/s]Computing FID (OU):  14%|█▍        | 1427/10000 [00:00<00:04, 2027.13it/s]Computing FID (OU):  16%|█▋        | 1630/10000 [00:00<00:04, 2000.55it/s]Computing FID (OU):  18%|█▊        | 1831/10000 [00:00<00:04, 1916.05it/s]Computing FID (OU):  20%|██        | 2031/10000 [00:01<00:04, 1940.10it/s]Computing FID (OU):  22%|██▏       | 2234/10000 [00:01<00:03, 1964.70it/s]Computing FID (OU):  24%|██▍       | 2436/10000 [00:01<00:03, 1980.50it/s]Computing FID (OU):  26%|██▋       | 2638/10000 [00:01<00:03, 1991.89it/s]Computing FID (OU):  28%|██▊       | 2843/10000 [00:01<00:03, 2007.29it/s]Computing FID (OU):  30%|███       | 3044/10000 [00:01<00:03, 2000.17it/s]Computing FID (OU):  32%|███▏      | 3247/10000 [00:01<00:03, 2007.70it/s]Computing FID (OU):  34%|███▍      | 3448/10000 [00:01<00:03, 2004.25it/s]Computing FID (OU):  36%|███▋      | 3650/10000 [00:01<00:03, 2006.09it/s]Computing FID (OU):  39%|███▊      | 3855/10000 [00:01<00:03, 2016.24it/s]Computing FID (OU):  41%|████      | 4064/10000 [00:02<00:02, 2036.12it/s]Computing FID (OU):  43%|████▎     | 4271/10000 [00:02<00:02, 2044.33it/s]Computing FID (OU):  45%|████▍     | 4478/10000 [00:02<00:02, 2049.28it/s]Computing FID (OU):  47%|████▋     | 4683/10000 [00:02<00:02, 2037.71it/s]Computing FID (OU):  49%|████▉     | 4887/10000 [00:02<00:02, 2030.06it/s]Computing FID (OU):  51%|█████     | 5091/10000 [00:02<00:02, 2025.78it/s]Computing FID (OU):  53%|█████▎    | 5296/10000 [00:02<00:02, 2031.58it/s]Computing FID (OU):  55%|█████▌    | 5500/10000 [00:02<00:02, 2027.16it/s]Computing FID (OU):  57%|█████▋    | 5703/10000 [00:02<00:02, 2019.09it/s]Computing FID (OU):  59%|█████▉    | 5908/10000 [00:02<00:02, 2026.16it/s]Computing FID (OU):  61%|██████    | 6111/10000 [00:03<00:01, 2019.81it/s]Computing FID (OU):  63%|██████▎   | 6313/10000 [00:03<00:01, 2014.75it/s]Computing FID (OU):  65%|██████▌   | 6518/10000 [00:03<00:01, 2025.23it/s]Computing FID (OU):  67%|██████▋   | 6725/10000 [00:03<00:01, 2038.21it/s]Computing FID (OU):  69%|██████▉   | 6931/10000 [00:03<00:01, 2042.89it/s]Computing FID (OU):  71%|███████▏  | 7136/10000 [00:03<00:01, 2031.11it/s]Computing FID (OU):  73%|███████▎  | 7340/10000 [00:03<00:01, 2023.29it/s]Computing FID (OU):  75%|███████▌  | 7545/10000 [00:03<00:01, 2030.29it/s]Computing FID (OU):  77%|███████▋  | 7749/10000 [00:03<00:01, 2031.06it/s]Computing FID (OU):  80%|███████▉  | 7953/10000 [00:03<00:01, 2030.47it/s]Computing FID (OU):  82%|████████▏ | 8157/10000 [00:04<00:00, 2030.76it/s]Computing FID (OU):  84%|████████▎ | 8361/10000 [00:04<00:00, 2027.72it/s]Computing FID (OU):  86%|████████▌ | 8564/10000 [00:04<00:00, 2016.22it/s]Computing FID (OU):  88%|████████▊ | 8766/10000 [00:04<00:00, 2009.62it/s]Computing FID (OU):  90%|████████▉ | 8970/10000 [00:04<00:00, 2017.96it/s]Computing FID (OU):  92%|█████████▏| 9172/10000 [00:04<00:00, 2012.64it/s]Computing FID (OU):  94%|█████████▍| 9376/10000 [00:04<00:00, 2020.75it/s]Computing FID (OU):  96%|█████████▌| 9580/10000 [00:04<00:00, 2024.32it/s]Computing FID (OU):  98%|█████████▊| 9786/10000 [00:04<00:00, 2033.17it/s]Computing FID (OU): 100%|█████████▉| 9990/10000 [00:04<00:00, 2031.79it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:04<00:00, 2017.72it/s]
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 18002.54it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 1.84e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.318, 0.318] μs
+  ✅ R² = 0.9679 (improvement: -0.0007, time: 0.1 min)
+  📊 Progress: 2/16, Remaining: ~0.0 hours
+
+[3/16] τc = 0.065 μs (ξ = 0.569)
+  Previous R² = 0.9551
+  dt = 0.65 ns, T_max = 9.99 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 0.06 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 5.688e-01
+[DEBUG] T2_th (estimated) ~ 0.26 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):   3%|▎         | 264/10000 [00:00<00:03, 2636.76it/s]Computing FID (OU):   5%|▌         | 528/10000 [00:00<00:03, 2635.91it/s]Computing FID (OU):   8%|▊         | 792/10000 [00:00<00:03, 2621.55it/s]Computing FID (OU):  11%|█         | 1056/10000 [00:00<00:03, 2625.90it/s]Computing FID (OU):  13%|█▎        | 1319/10000 [00:00<00:03, 2615.10it/s]Computing FID (OU):  16%|█▌        | 1581/10000 [00:00<00:03, 2608.06it/s]Computing FID (OU):  18%|█▊        | 1842/10000 [00:00<00:03, 2599.12it/s]Computing FID (OU):  21%|██        | 2102/10000 [00:00<00:03, 2590.44it/s]Computing FID (OU):  24%|██▎       | 2366/10000 [00:00<00:02, 2603.88it/s]Computing FID (OU):  26%|██▋       | 2633/10000 [00:01<00:02, 2622.78it/s]Computing FID (OU):  29%|██▉       | 2899/10000 [00:01<00:02, 2633.00it/s]Computing FID (OU):  32%|███▏      | 3164/10000 [00:01<00:02, 2635.66it/s]Computing FID (OU):  34%|███▍      | 3428/10000 [00:01<00:02, 2632.16it/s]Computing FID (OU):  37%|███▋      | 3694/10000 [00:01<00:02, 2638.56it/s]Computing FID (OU):  40%|███▉      | 3960/10000 [00:01<00:02, 2643.98it/s]Computing FID (OU):  42%|████▏     | 4225/10000 [00:01<00:02, 2634.96it/s]Computing FID (OU):  45%|████▍     | 4490/10000 [00:01<00:02, 2637.17it/s]Computing FID (OU):  48%|████▊     | 4754/10000 [00:01<00:01, 2630.07it/s]Computing FID (OU):  50%|█████     | 5018/10000 [00:01<00:01, 2626.43it/s]Computing FID (OU):  53%|█████▎    | 5283/10000 [00:02<00:01, 2632.31it/s]Computing FID (OU):  55%|█████▌    | 5547/10000 [00:02<00:01, 2630.53it/s]Computing FID (OU):  58%|█████▊    | 5811/10000 [00:02<00:01, 2629.85it/s]Computing FID (OU):  61%|██████    | 6074/10000 [00:02<00:01, 2621.45it/s]Computing FID (OU):  63%|██████▎   | 6337/10000 [00:02<00:01, 2612.05it/s]Computing FID (OU):  66%|██████▌   | 6600/10000 [00:02<00:01, 2616.06it/s]Computing FID (OU):  69%|██████▊   | 6865/10000 [00:02<00:01, 2624.95it/s]Computing FID (OU):  71%|███████▏  | 7131/10000 [00:02<00:01, 2635.05it/s]Computing FID (OU):  74%|███████▍  | 7399/10000 [00:02<00:00, 2646.92it/s]Computing FID (OU):  77%|███████▋  | 7666/10000 [00:02<00:00, 2652.86it/s]Computing FID (OU):  79%|███████▉  | 7932/10000 [00:03<00:00, 2653.93it/s]Computing FID (OU):  82%|████████▏ | 8198/10000 [00:03<00:00, 2650.83it/s]Computing FID (OU):  85%|████████▍ | 8464/10000 [00:03<00:00, 2652.69it/s]Computing FID (OU):  87%|████████▋ | 8730/10000 [00:03<00:00, 2650.38it/s]Computing FID (OU):  90%|████████▉ | 8996/10000 [00:03<00:00, 2642.75it/s]Computing FID (OU):  93%|█████████▎| 9261/10000 [00:03<00:00, 2638.26it/s]Computing FID (OU):  95%|█████████▌| 9525/10000 [00:03<00:00, 2632.38it/s]Computing FID (OU):  98%|█████████▊| 9789/10000 [00:03<00:00, 2619.87it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:03<00:00, 2628.26it/s]
+  Regime detected (ξ = 0.569 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 8352.59it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 2.01e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.295, 0.295] μs
+  ✅ R² = 0.9542 (improvement: -0.0009, time: 0.1 min)
+  📊 Progress: 3/16, Remaining: ~0.0 hours
+
+[4/16] τc = 0.075 μs (ξ = 0.663)
+  Previous R² = 0.9388
+  dt = 0.75 ns, T_max = 8.57 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 0.08 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 6.631e-01
+[DEBUG] T2_th (estimated) ~ 0.24 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):   3%|▎         | 334/10000 [00:00<00:02, 3337.97it/s]Computing FID (OU):   7%|▋         | 679/10000 [00:00<00:02, 3400.44it/s]Computing FID (OU):  10%|█         | 1024/10000 [00:00<00:02, 3418.62it/s]Computing FID (OU):  14%|█▎        | 1369/10000 [00:00<00:02, 3430.72it/s]Computing FID (OU):  17%|█▋        | 1713/10000 [00:00<00:02, 3393.42it/s]Computing FID (OU):  21%|██        | 2055/10000 [00:00<00:02, 3402.14it/s]Computing FID (OU):  24%|██▍       | 2399/10000 [00:00<00:02, 3412.98it/s]Computing FID (OU):  27%|██▋       | 2743/10000 [00:00<00:02, 3421.10it/s]Computing FID (OU):  31%|███       | 3086/10000 [00:00<00:02, 3420.32it/s]Computing FID (OU):  34%|███▍      | 3429/10000 [00:01<00:01, 3409.16it/s]Computing FID (OU):  38%|███▊      | 3770/10000 [00:01<00:01, 3405.70it/s]Computing FID (OU):  41%|████      | 4112/10000 [00:01<00:01, 3408.71it/s]Computing FID (OU):  45%|████▍     | 4453/10000 [00:01<00:01, 3405.68it/s]Computing FID (OU):  48%|████▊     | 4795/10000 [00:01<00:01, 3407.54it/s]Computing FID (OU):  51%|█████▏    | 5136/10000 [00:01<00:01, 3394.35it/s]Computing FID (OU):  55%|█████▍    | 5476/10000 [00:01<00:01, 3370.91it/s]Computing FID (OU):  58%|█████▊    | 5814/10000 [00:01<00:01, 3357.96it/s]Computing FID (OU):  62%|██████▏   | 6150/10000 [00:01<00:01, 3355.61it/s]Computing FID (OU):  65%|██████▍   | 6487/10000 [00:01<00:01, 3359.32it/s]Computing FID (OU):  68%|██████▊   | 6826/10000 [00:02<00:00, 3366.38it/s]Computing FID (OU):  72%|███████▏  | 7167/10000 [00:02<00:00, 3378.08it/s]Computing FID (OU):  75%|███████▌  | 7510/10000 [00:02<00:00, 3393.47it/s]Computing FID (OU):  79%|███████▊  | 7853/10000 [00:02<00:00, 3403.42it/s]Computing FID (OU):  82%|████████▏ | 8196/10000 [00:02<00:00, 3408.61it/s]Computing FID (OU):  85%|████████▌ | 8537/10000 [00:02<00:00, 3390.49it/s]Computing FID (OU):  89%|████████▉ | 8877/10000 [00:02<00:00, 3382.44it/s]Computing FID (OU):  92%|█████████▏| 9216/10000 [00:02<00:00, 3355.98it/s]Computing FID (OU):  96%|█████████▌| 9552/10000 [00:02<00:00, 3345.66it/s]Computing FID (OU):  99%|█████████▉| 9887/10000 [00:02<00:00, 3335.24it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:02<00:00, 3383.65it/s]
+  Regime detected (ξ = 0.663 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 8975.57it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 2.17e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.279, 0.279] μs
+  ✅ R² = 0.9362 (improvement: -0.0026, time: 0.1 min)
+  📊 Progress: 4/16, Remaining: ~0.0 hours
+
+[5/16] τc = 0.088 μs (ξ = 0.773)
+  Previous R² = 0.9201
+  dt = 0.88 ns, T_max = 7.35 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 0.09 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 7.732e-01
+[DEBUG] T2_th (estimated) ~ 0.23 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):   4%|▍         | 426/10000 [00:00<00:02, 4252.94it/s]Computing FID (OU):   9%|▊         | 862/10000 [00:00<00:02, 4314.57it/s]Computing FID (OU):  13%|█▎        | 1296/10000 [00:00<00:02, 4326.00it/s]Computing FID (OU):  17%|█▋        | 1731/10000 [00:00<00:01, 4335.32it/s]Computing FID (OU):  22%|██▏       | 2165/10000 [00:00<00:01, 4289.94it/s]Computing FID (OU):  26%|██▌       | 2595/10000 [00:00<00:01, 4242.07it/s]Computing FID (OU):  30%|███       | 3020/10000 [00:00<00:01, 4228.81it/s]Computing FID (OU):  34%|███▍      | 3447/10000 [00:00<00:01, 4238.81it/s]Computing FID (OU):  39%|███▉      | 3877/10000 [00:00<00:01, 4257.40it/s]Computing FID (OU):  43%|████▎     | 4310/10000 [00:01<00:01, 4277.33it/s]Computing FID (OU):  47%|████▋     | 4743/10000 [00:01<00:01, 4293.37it/s]Computing FID (OU):  52%|█████▏    | 5176/10000 [00:01<00:01, 4301.79it/s]Computing FID (OU):  56%|█████▌    | 5609/10000 [00:01<00:01, 4309.19it/s]Computing FID (OU):  60%|██████    | 6042/10000 [00:01<00:00, 4313.52it/s]Computing FID (OU):  65%|██████▍   | 6479/10000 [00:01<00:00, 4329.83it/s]Computing FID (OU):  69%|██████▉   | 6913/10000 [00:01<00:00, 4331.72it/s]Computing FID (OU):  73%|███████▎  | 7348/10000 [00:01<00:00, 4336.91it/s]Computing FID (OU):  78%|███████▊  | 7782/10000 [00:01<00:00, 4335.96it/s]Computing FID (OU):  82%|████████▏ | 8216/10000 [00:01<00:00, 4315.15it/s]Computing FID (OU):  86%|████████▋ | 8648/10000 [00:02<00:00, 4300.28it/s]Computing FID (OU):  91%|█████████ | 9079/10000 [00:02<00:00, 4269.96it/s]Computing FID (OU):  95%|█████████▌| 9507/10000 [00:02<00:00, 4251.05it/s]Computing FID (OU):  99%|█████████▉| 9933/10000 [00:02<00:00, 4229.03it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:02<00:00, 4283.64it/s]
+  Regime detected (ξ = 0.773 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 9347.55it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 2.32e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.264, 0.264] μs
+  ✅ R² = 0.9211 (improvement: +0.0009, time: 0.0 min)
+  📊 Progress: 5/16, Remaining: ~0.0 hours
+
+[6/16] τc = 2.207 μs (ξ = 19.421)
+  Previous R² = 0.9246
+  dt = 22.07 ns, T_max = 39.77 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 2.21 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 1.942e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1894/10000 [00:00<00:00, 18934.47it/s]Computing FID (OU):  38%|███▊      | 3843/10000 [00:00<00:00, 19260.76it/s]Computing FID (OU):  58%|█████▊    | 5812/10000 [00:00<00:00, 19454.79it/s]Computing FID (OU):  78%|███████▊  | 7764/10000 [00:00<00:00, 19477.31it/s]Computing FID (OU):  97%|█████████▋| 9725/10000 [00:00<00:00, 19521.70it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19437.78it/s]
+  Regime detected (ξ = 19.421 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 7512.37it/s]
+  Warning: Degenerate bootstrap CI (std = 2.65e-23, std_rel = 1.63e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.130, 0.130] μs
+  ✅ R² = 0.9986 (improvement: +0.0740, time: 0.0 min)
+  📊 Progress: 6/16, Remaining: ~0.0 hours
+
+[7/16] τc = 2.573 μs (ξ = 22.643)
+  Previous R² = 0.9372
+  dt = 25.73 ns, T_max = 39.77 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 2.57 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 2.264e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1893/10000 [00:00<00:00, 18920.32it/s]Computing FID (OU):  38%|███▊      | 3840/10000 [00:00<00:00, 19238.40it/s]Computing FID (OU):  58%|█████▊    | 5771/10000 [00:00<00:00, 19270.44it/s]Computing FID (OU):  77%|███████▋  | 7715/10000 [00:00<00:00, 19334.88it/s]Computing FID (OU):  97%|█████████▋| 9664/10000 [00:00<00:00, 19387.52it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19323.82it/s]
+  Regime detected (ξ = 22.643 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 22546.87it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.130, 0.130] μs
+  ✅ R² = 0.9988 (improvement: +0.0616, time: 0.0 min)
+  📊 Progress: 7/16, Remaining: ~0.0 hours
+
+[8/16] τc = 3.000 μs (ξ = 26.400)
+  Previous R² = 0.9409
+  dt = 30.00 ns, T_max = 39.77 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 3.00 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 2.640e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1932/10000 [00:00<00:00, 19318.59it/s]Computing FID (OU):  39%|███▊      | 3864/10000 [00:00<00:00, 19079.92it/s]Computing FID (OU):  58%|█████▊    | 5773/10000 [00:00<00:00, 18942.07it/s]Computing FID (OU):  77%|███████▋  | 7688/10000 [00:00<00:00, 19021.06it/s]Computing FID (OU):  96%|█████████▋| 9627/10000 [00:00<00:00, 19153.21it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19113.44it/s]
+  Regime detected (ξ = 26.400 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 22200.78it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.130, 0.130] μs
+  ✅ R² = 0.9989 (improvement: +0.0580, time: 0.0 min)
+  📊 Progress: 8/16, Remaining: ~0.0 hours
+
+[9/16] τc = 3.822 μs (ξ = 33.630)
+  Previous R² = 0.9455
+  dt = 38.22 ns, T_max = 39.77 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 3.82 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 3.363e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1925/10000 [00:00<00:00, 19242.91it/s]Computing FID (OU):  38%|███▊      | 3850/10000 [00:00<00:00, 19081.99it/s]Computing FID (OU):  58%|█████▊    | 5759/10000 [00:00<00:00, 19044.41it/s]Computing FID (OU):  77%|███████▋  | 7664/10000 [00:00<00:00, 19012.46it/s]Computing FID (OU):  96%|█████████▌| 9568/10000 [00:00<00:00, 19021.88it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19034.35it/s]
+  Regime detected (ξ = 33.630 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 21732.37it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.129, 0.129] μs
+  ✅ R² = 0.9988 (improvement: +0.0533, time: 0.0 min)
+  📊 Progress: 9/16, Remaining: ~0.0 hours
+
+[10/16] τc = 4.868 μs (ξ = 42.839)
+  Previous R² = 0.9490
+  dt = 48.68 ns, T_max = 39.77 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 4.87 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 4.284e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1880/10000 [00:00<00:00, 18795.54it/s]Computing FID (OU):  38%|███▊      | 3783/10000 [00:00<00:00, 18930.43it/s]Computing FID (OU):  57%|█████▋    | 5707/10000 [00:00<00:00, 19069.59it/s]Computing FID (OU):  76%|███████▋  | 7628/10000 [00:00<00:00, 19123.13it/s]Computing FID (OU):  95%|█████████▌| 9548/10000 [00:00<00:00, 19150.77it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19090.27it/s]
+  Regime detected (ξ = 42.839 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 22794.63it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9493 (improvement: +0.0004, time: 0.0 min)
+  📊 Progress: 10/16, Remaining: ~0.0 hours
+
+[11/16] τc = 6.201 μs (ξ = 54.571)
+  Previous R² = 0.9528
+  dt = 62.01 ns, T_max = 45.45 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 6.20 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 5.457e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1894/10000 [00:00<00:00, 18937.58it/s]Computing FID (OU):  38%|███▊      | 3808/10000 [00:00<00:00, 19052.94it/s]Computing FID (OU):  57%|█████▋    | 5723/10000 [00:00<00:00, 19093.33it/s]Computing FID (OU):  76%|███████▋  | 7642/10000 [00:00<00:00, 19129.44it/s]Computing FID (OU):  96%|█████████▌| 9555/10000 [00:00<00:00, 19010.72it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19024.39it/s]
+  Regime detected (ξ = 54.571 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 21528.68it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9533 (improvement: +0.0004, time: 0.0 min)
+  📊 Progress: 11/16, Remaining: ~0.0 hours
+
+[12/16] τc = 7.900 μs (ξ = 69.516)
+  Previous R² = 0.9550
+  dt = 79.00 ns, T_max = 45.45 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 7.90 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 6.952e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1894/10000 [00:00<00:00, 18938.71it/s]Computing FID (OU):  38%|███▊      | 3796/10000 [00:00<00:00, 18981.93it/s]Computing FID (OU):  57%|█████▋    | 5704/10000 [00:00<00:00, 19025.57it/s]Computing FID (OU):  76%|███████▌  | 7607/10000 [00:00<00:00, 18919.69it/s]Computing FID (OU):  95%|█████████▌| 9500/10000 [00:00<00:00, 18397.61it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 18640.51it/s]
+  Regime detected (ξ = 69.516 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 22721.04it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9569 (improvement: +0.0019, time: 0.0 min)
+  📊 Progress: 12/16, Remaining: ~0.0 hours
+
+[13/16] τc = 10.063 μs (ξ = 88.553)
+  Previous R² = 0.9594
+  dt = 100.63 ns, T_max = 50.31 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 10.06 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 8.855e+01
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1924/10000 [00:00<00:00, 19239.06it/s]Computing FID (OU):  38%|███▊      | 3849/10000 [00:00<00:00, 19241.00it/s]Computing FID (OU):  58%|█████▊    | 5777/10000 [00:00<00:00, 19255.82it/s]Computing FID (OU):  77%|███████▋  | 7703/10000 [00:00<00:00, 19055.73it/s]Computing FID (OU):  96%|█████████▌| 9609/10000 [00:00<00:00, 18903.85it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19021.61it/s]
+  Regime detected (ξ = 88.553 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 21497.12it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9609 (improvement: +0.0015, time: 0.0 min)
+  📊 Progress: 13/16, Remaining: ~0.0 hours
+
+[14/16] τc = 12.819 μs (ξ = 112.804)
+  Previous R² = 0.9578
+  dt = 128.19 ns, T_max = 64.09 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 12.82 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 1.128e+02
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1888/10000 [00:00<00:00, 18875.83it/s]Computing FID (OU):  38%|███▊      | 3780/10000 [00:00<00:00, 18901.69it/s]Computing FID (OU):  57%|█████▋    | 5699/10000 [00:00<00:00, 19032.03it/s]Computing FID (OU):  77%|███████▋  | 7670/10000 [00:00<00:00, 19296.15it/s]Computing FID (OU):  96%|█████████▌| 9610/10000 [00:00<00:00, 19332.14it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19225.38it/s]
+  Regime detected (ξ = 112.804 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 22603.00it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9610 (improvement: +0.0032, time: 0.0 min)
+  📊 Progress: 14/16, Remaining: ~0.0 hours
+
+[15/16] τc = 16.329 μs (ξ = 143.696)
+  Previous R² = 0.9621
+  dt = 163.29 ns, T_max = 81.65 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 16.33 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 1.437e+02
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1938/10000 [00:00<00:00, 19374.57it/s]Computing FID (OU):  39%|███▉      | 3881/10000 [00:00<00:00, 19406.83it/s]Computing FID (OU):  58%|█████▊    | 5826/10000 [00:00<00:00, 19424.77it/s]Computing FID (OU):  78%|███████▊  | 7769/10000 [00:00<00:00, 19276.79it/s]Computing FID (OU):  97%|█████████▋| 9697/10000 [00:00<00:00, 19233.77it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 19284.58it/s]
+  Regime detected (ξ = 143.696 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 22220.54it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9642 (improvement: +0.0021, time: 0.0 min)
+  📊 Progress: 15/16, Remaining: ~0.0 hours
+
+[16/16] τc = 20.801 μs (ξ = 183.047)
+  Previous R² = 0.9768
+  dt = 208.01 ns, T_max = 104.00 μs, N_traj = 10000
+  ⏱️  Estimated: ~40-60 minutes (enhanced parameters)...
+
+Running simulation for τ_c = 20.80 μs
+[DEBUG] Delta_omega = 8.800e+06 rad/s
+[DEBUG] xi = 1.830e+02
+[DEBUG] T2_th (estimated) ~ 0.16 μs
+Computing FID (OU):   0%|          | 0/10000 [00:00<?, ?it/s]Computing FID (OU):  19%|█▉        | 1899/10000 [00:00<00:00, 18982.05it/s]Computing FID (OU):  38%|███▊      | 3818/10000 [00:00<00:00, 19101.77it/s]Computing FID (OU):  57%|█████▋    | 5731/10000 [00:00<00:00, 19114.21it/s]Computing FID (OU):  76%|███████▋  | 7643/10000 [00:00<00:00, 18867.46it/s]Computing FID (OU):  95%|█████████▌| 9531/10000 [00:00<00:00, 18714.48it/s]Computing FID (OU): 100%|██████████| 10000/10000 [00:00<00:00, 18820.06it/s]
+  Regime detected (ξ = 183.047 > 0.5): using per-sample fitting window for better bootstrap variance
+Bootstrap:   0%|          | 0/500 [00:00<?, ?it/s]Bootstrap: 100%|██████████| 500/500 [00:00<00:00, 21461.05it/s]
+  Warning: Degenerate bootstrap CI (std = 5.30e-23, std_rel = 3.30e-16, unique values = 1)
+  This can happen in static regime or when fitting window is too restrictive
+  Bootstrap CI is degenerate, using analytical error estimate
+  Bootstrap std-based CI: [0.161, 0.161] μs
+  ✅ R² = 0.9785 (improvement: +0.0017, time: 0.0 min)
+  📊 Progress: 16/16, Remaining: ~0.0 hours
+
+================================================================================
+✅ Force improvement completed!
+Total time: 0h 0m
+================================================================================

@@ -5,19 +5,21 @@ materials:
   
   Si_P:
     name: "Silicon-28 (³¹P-doped)"
-    description: "Nearly nuclear-spin-free, charge noise limited"
+    description: "Isotopically purified ²⁸Si:P, nuclear-spin-free, charge noise dominated"
     
     # Physics parameters
     gamma_e: 1.76e11  # rad/(s·T), electron gyromagnetic ratio
     T1: 10000.0e-6    # seconds, spin-flip time (very long)
     
     # Single OU noise model
+    # FINAL PARAMETERS: Based on isotopically purified Si-28:P
+    # References: Muhonen et al. (2014), Veldhorst et al. (2014)
     OU:
-      B_rms: 3.21e-9   # Tesla, RMS magnetic field fluctuation (3.21 nT, corrected from 5 μT)
-      tau_c_min: 0.1e-6    # seconds (avoid extreme MN regime)
-      tau_c_max: 500.0e-6  # seconds (increased for better coverage)
-      tau_c_num: 30        # Increased data points
-      notes: "Charge noise from surface/interface"
+      B_rms: 4.0e-9    # Tesla, RMS magnetic field fluctuation (4.0 nT)
+      tau_c_min: 3.0e-9    # seconds (3 ns)
+      tau_c_max: 3.0e-3   # seconds (3 ms)
+      tau_c_num: 50        # Dense sampling for better coverage
+      notes: "Charge noise from surface/interface, isotopically purified >99.99% 28Si"
     
     # Double OU noise model (two timescales)
     Double_OU:
@@ -29,19 +31,16 @@ materials:
       B_rms2: 2.27e-9    # Tesla (3.21 nT / √2, corrected)
       tau_c2_min: 0.5e-6   # seconds
       tau_c2_max: 100.0e-6  # seconds (increased range)
-      tau_c2_num: 30       # Increased data points
+      tau_c2_num: 20       # Reduced for faster execution (still sufficient for curve fitting)
       
       notes: "Fast: residual hyperfine, Slow: charge fluctuations"
     
     # Simulation parameters
-    # CRITICAL: QS regime requires T_max >> T2_th for accurate fitting
-    # For Si:P with T2* ≈ 2.5 ms (expected), need T_max >= 25 ms (10×T2*, sufficient)
-    # MEMORY FIX: Reduced T_max from 50ms to 25ms and increased dt to 0.2ns
-    # This gives N_steps = 125M (manageable) while maintaining accuracy
-    # With tau_c_min = 0.1μs, dt = 0.2ns gives dt/tau_c = 0.002 (500 samples per tau_c, sufficient)
-    T_max: 25.0e-3  # seconds, max simulation time (25 ms, 10×T2* for QS regime)
-    dt: 0.2e-9       # seconds, time step (0.2 ns, balanced for accuracy and memory)
-    M: 300          # ensemble size (reduced for memory efficiency, still sufficient for statistics)
+    # FINAL PARAMETERS: Optimized for Si-28:P with B_rms = 4.0 nT
+    # Expected T2 (QS regime) ≈ 200 μs, so T_max = 10 ms provides good coverage
+    T_max: 10.0e-3   # seconds, max simulation time (10 ms, ≥50×T2_QS for good coverage)
+    dt: 3.0e-11       # seconds, time step (30 ps, tau_c_min/100 for accuracy)
+    M: 2000          # ensemble size (sufficient for bootstrap statistics)
     seed: 42
     
     # Literature references
@@ -64,10 +63,14 @@ materials:
     # Single OU noise model
     OU:
       B_rms: 8.0e-6     # Tesla, Overhauser field fluctuation (correct for GaAs)
-      tau_c_min: 0.1e-6    # seconds (avoid extreme MN regime)
-      tau_c_max: 10.0e-6    # seconds (10 μs)
-      tau_c_num: 30        # Increased data points
-      notes: "Nuclear spin flip-flop dynamics"
+      # DISSERTATION FIX: Focus on MN regime for accurate slope measurement
+      # ξ = γ_e * B_rms * tau_c = 1.76e11 * 8e-6 * tau_c = 1.408e6 * tau_c
+      # For ξ < 1 (MN regime): tau_c < 0.71 μs
+      # Focus on 0.05-0.5 μs range (ξ = 0.07-0.70) for pure MN regime
+      tau_c_min: 0.05e-6    # seconds (50 ns, pure MN regime)
+      tau_c_max: 0.5e-6     # seconds (500 ns, stay in MN regime)
+      tau_c_num: 50        # Increased data points for better slope fit
+      notes: "Nuclear spin flip-flop dynamics - MN regime focused for slope validation"
     
     # Double OU noise model
     Double_OU:

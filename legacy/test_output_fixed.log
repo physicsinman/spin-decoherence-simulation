@@ -1,0 +1,65 @@
+Traceback (most recent call last):
+  File "/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/simulate_materials_improved.py", line 403, in run_full_comparison_improved
+    result = run_single_case_improved(
+  File "/Users/physicsinman/Library/Mobile Documents/com~apple~CloudDocs/Documents/Physics/Physics_3rd_Year/5th Semester/Dissertation/simulation/simulate_materials_improved.py", line 203, in run_single_case_improved
+    T2_expected = estimate_characteristic_T2(tau_c, gamma_e, B_rms)
+UnboundLocalError: local variable 'estimate_characteristic_T2' referenced before assignment
+======================================================================
+테스트 시뮬레이션 (수정된 파라미터 검증)
+======================================================================
+
+설정:
+  • GaAs만 실행 (빠름)
+  • Single OU만 (간단)
+  • FID만 (가장 기본)
+  • tau_c_num: 10 (빠른 테스트)
+
+시작합니다...
+
+======================================================================
+IMPROVED MATERIAL COMPARISON SIMULATION
+======================================================================
+
+Settings:
+  Parameter validation: ✓
+  Adaptive simulation: ✓
+  Improved T2 extraction: ✓
+======================================================================
+
+============================================================
+Running (Improved): GaAs | OU | FID
+============================================================
+
+[1/5] Parameter Validation...
+
+============================================================
+Parameter Comparison for GaAs
+============================================================
+
+B_rms Comparison:
+  Literature (required): 8035.304 nT
+  Current simulation:   8000.000 nT
+  Ratio: 1.0×
+
+T_max Comparison:
+  Required (≥5×T2*): 5.0 µs
+  Current simulation:  30.0 µs
+  Ratio: 6.00×
+============================================================
+
+[2/5] Using Memory-Efficient Simulation (Adaptive disabled for full decay observation)...
+[3/5] Using Improved T2 Extraction...
+
+  [1/30] tau_c = 0.100 µs
+      Regime: intermediate
+✗ Error in GaAs | OU | FID: local variable 'estimate_characteristic_T2' referenced before assignment
+
+✓ Saved combined results: results_comparison/all_results_improved_20251118_011218.json
+======================================================================
+
+======================================================================
+✅ 테스트 시뮬레이션 완료!
+======================================================================
+
+결과 확인 후 전체 시뮬레이션을 실행하세요.
+전체 시뮬: python3 run_full_simulation_chunked.py

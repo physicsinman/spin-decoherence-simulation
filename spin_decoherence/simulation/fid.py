@@ -116,12 +116,35 @@ def run_simulation_single(tau_c, params=None, verbose=True):
     
     # Bootstrap CI for T_2 (if requested)
     T2_ci = None
+    T2_samples = None  # Initialize T2_samples
     if params.get('compute_bootstrap', True) and fit_result is not None:
         from spin_decoherence.analysis.bootstrap import bootstrap_T2
-        T2_mean, T2_ci, _ = bootstrap_T2(
-            t, E_abs_all, E_se=E_se, B=500, verbose=False,
+        T2_mean, T2_ci, T2_samples = bootstrap_T2(
+            t, E_abs_all, E_se=E_se, B=500, verbose=verbose,
             tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms']
         )
+        
+        # Fallback to analytical error if bootstrap CI is degenerate
+        if T2_ci is None and fit_result is not None:
+            if verbose:
+                print(f"  Bootstrap CI is degenerate, using analytical error estimate")
+            # Use fit error if available
+            T2 = fit_result.get('T2', np.nan)
+            T2_error = fit_result.get('T2_error', np.nan)
+            if not np.isnan(T2) and not np.isnan(T2_error):
+                # Use 1.96 * SE for 95% CI (assuming normal distribution)
+                T2_ci = (T2 - 1.96 * T2_error, T2 + 1.96 * T2_error)
+                if verbose:
+                    print(f"  Analytical CI: [{T2_ci[0]*1e6:.3f}, {T2_ci[1]*1e6:.3f}] μs")
+            elif T2_samples is not None and len(T2_samples) > 0:
+                # Use std of bootstrap samples even if CI is degenerate
+                T2_std = np.std(T2_samples, ddof=1)
+                T2 = fit_result.get('T2', T2_mean if T2_mean is not None else np.nan)
+                if not np.isnan(T2) and T2_std > 0:
+                    T2_ci = (T2 - 1.96 * T2_std, T2 + 1.96 * T2_std)
+                    if verbose:
+                        print(f"  Bootstrap std-based CI: [{T2_ci[0]*1e6:.3f}, {T2_ci[1]*1e6:.3f}] μs")
+        
         if fit_result is not None:
             fit_result['T2_ci'] = T2_ci
     
@@ -136,6 +159,7 @@ def run_simulation_single(tau_c, params=None, verbose=True):
         'E_abs_all': E_abs_all,
         'fit_result': fit_result,
         'T2_ci': T2_ci,
+        'T2_samples': T2_samples,  # Include bootstrap samples
     }
     
     # Save delta_B sample if requested
