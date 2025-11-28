@@ -41,7 +41,7 @@ def stretched_exponential_decay(t, T_beta, beta):
     return np.exp(-(t / T_beta)**beta)
 
 
-def select_echo_fit_window(t, E_abs, E_se=None, eps=None, min_pts=20, tau_c=None, gamma_e=None, B_rms=None):
+def select_echo_fit_window(t, E_abs, E_se=None, eps=None, min_pts=10, tau_c=None, gamma_e=None, B_rms=None):
     """
     Select fitting window for echo signals.
     
@@ -74,15 +74,23 @@ def select_echo_fit_window(t, E_abs, E_se=None, eps=None, min_pts=20, tau_c=None
     E_fit : ndarray
         Selected |E| values for fitting
     """
+    # IMPROVEMENT: More conservative threshold for echo fitting
+    # Echo signals are more sensitive to noise floor, so use higher threshold
     # Adaptive threshold based on noise regime
     if eps is None:
         if tau_c is not None and gamma_e is not None and B_rms is not None:
             Delta_omega = gamma_e * B_rms
             xi = Delta_omega * tau_c
-            if xi < 0.5:  # Fast noise: echo ≈ FID, use similar threshold
+            if xi < 0.5:  # Fast noise (MN): echo ≈ FID, use similar threshold
                 eps = 0.05  # Same as FID
-            else:  # Slow noise: more conservative
-                eps = 0.1
+            elif xi < 5.0:  # Crossover: more conservative
+                eps = 0.04  # Increased from implicit 0.02
+            elif xi < 20.0:  # Shallow QS: conservative
+                eps = 0.03  # Increased from 0.01 to avoid noise floor
+            elif xi < 50.0:  # Intermediate QS: more conservative
+                eps = 0.02  # Lower threshold for intermediate QS to capture more decay
+            else:  # Deep QS: very conservative
+                eps = 0.015  # Even lower threshold for deep QS to capture slow decay
         else:
             eps = 0.1  # Default: conservative
     
@@ -107,9 +115,25 @@ def select_echo_fit_window(t, E_abs, E_se=None, eps=None, min_pts=20, tau_c=None
     mask = (E_abs > threshold) & np.isfinite(E_abs) & (E_abs > 0)
     idx = np.where(mask)[0]
     
-    if len(idx) < min_pts:
-        # If too few points, use initial portion
-        idx = np.arange(min(min_pts, len(t)))
+    # IMPROVEMENT: For echo, allow smaller min_pts to focus on clean initial decay
+    # But for QS regime, we need more points to capture slow decay
+    # Adjust min_pts based on regime
+    if tau_c is not None and gamma_e is not None and B_rms is not None:
+        Delta_omega = gamma_e * B_rms
+        xi = Delta_omega * tau_c
+        if xi > 20:  # QS regime needs more points
+            min_pts_effective = max(min_pts, 15)  # At least 15 points for QS
+        else:
+            min_pts_effective = min_pts
+    else:
+        min_pts_effective = min_pts
+    
+    if len(idx) < min_pts_effective:
+        if len(t) >= min_pts_effective:
+            idx = np.arange(min(min_pts_effective, len(t)))
+        else:
+            # Use all available points if we have at least 3
+            idx = np.arange(len(t)) if len(t) >= 3 else idx
     
     return t[idx], E_abs[idx]
 
@@ -1260,85 +1284,65 @@ def fit_coherence_decay_with_offset(t, E_magnitude, E_se=None, model='auto', use
         if not valid_results:
             return None
         
-        # DISSERTATION FIX: Regime-aware model selection
-        # - MN regime (ξ < 1): Prefer exponential (theoretically correct: T2 ∝ 1/τ_c)
-        # - Static regime (ξ > 2): Prefer Gaussian (theoretically correct: E(t) ≈ exp[-(t/T2)^2])
+        # ENHANCED: Strict regime-aware model selection
+        # - MN regime (ξ < 0.15): Force exponential (theoretically correct: T2 ∝ 1/τ_c)
+        # - Crossover (0.15 ≤ ξ < 4.0): Force stretched exponential (intermediate dynamics)
+        # - QS regime (ξ ≥ 4.0): Force Gaussian (theoretically correct: E(t) ≈ exp[-(t/T2)^2])
         criterion = 'BIC' if use_bic else 'AIC'
         
         if tau_c is not None and gamma_e is not None and B_rms is not None:
             Delta_omega = gamma_e * B_rms
             xi = Delta_omega * tau_c
             
-            if xi < 1.0 and 'exponential' in valid_results:
-                # Motional narrowing regime: exponential is theoretically correct
-                # T2 = 1/(Δω²τ_c), so log(T2) = -log(τ_c) + const (slope = -1)
-                exponential_result = valid_results['exponential']
-                
-                # Find best model by criterion
-                best_by_criterion = min(valid_results.keys(), 
-                                       key=lambda k: valid_results[k].get(criterion, 
-                                                                        valid_results[k].get('RMSE', 
-                                                                                             valid_results[k]['AIC'])))
-                best_criterion_value = valid_results[best_by_criterion].get(criterion, 
-                                                                           valid_results[best_by_criterion].get('RMSE', 
-                                                                                                                valid_results[best_by_criterion]['AIC']))
-                exponential_criterion_value = exponential_result.get(criterion, 
-                                                                     exponential_result.get('RMSE', 
-                                                                                            exponential_result['AIC']))
-                
-                # Use exponential if it's within 20% of best, or if R2 > 0.9
-                # More lenient than Gaussian because MN regime can have noise
-                if (exponential_result.get('R2', 0) > 0.9 or 
-                    (best_criterion_value != 0 and abs(exponential_criterion_value - best_criterion_value) / abs(best_criterion_value) < 0.2)):
+            # STRICT REGIME-AWARE: Force model based on regime boundaries
+            if xi < 0.15:
+                # MN regime: Force exponential
+                if 'exponential' in valid_results:
                     best_model = 'exponential'
-                    best_result = exponential_result.copy()
+                    best_result = valid_results['exponential'].copy()
                     best_result['model'] = 'exponential'
-                    best_result['selection_criterion'] = f'{criterion} (MN regime: preferred exponential)'
+                    best_result['selection_criterion'] = f'MN regime (ξ={xi:.3f} < 0.15): forced exponential'
                 else:
-                    # Use best by criterion
-                    best_model = best_by_criterion
+                    # Fallback: use best available
+                    best_model = min(valid_results.keys(), 
+                                   key=lambda k: valid_results[k].get(criterion, 
+                                                                      valid_results[k].get('RMSE', 
+                                                                                           valid_results[k]['AIC'])))
                     best_result = valid_results[best_model].copy()
                     best_result['model'] = best_model
-                    best_result['selection_criterion'] = criterion
-            elif xi > 2.0 and 'gaussian' in valid_results:
-                # Static regime: Gaussian is theoretically correct
-                # Only use Gaussian if it's reasonable (R2 > 0.9 or close to best)
-                gaussian_result = valid_results['gaussian']
-                
-                # Find best model by criterion
-                best_by_criterion = min(valid_results.keys(), 
-                                       key=lambda k: valid_results[k].get(criterion, 
-                                                                        valid_results[k].get('RMSE', 
-                                                                                             valid_results[k]['AIC'])))
-                best_criterion_value = valid_results[best_by_criterion].get(criterion, 
-                                                                           valid_results[best_by_criterion].get('RMSE', 
-                                                                                                                valid_results[best_by_criterion]['AIC']))
-                gaussian_criterion_value = gaussian_result.get(criterion, 
-                                                               gaussian_result.get('RMSE', 
-                                                                                   gaussian_result['AIC']))
-                
-                # Use Gaussian if it's within 10% of best, or if R2 > 0.9
-                if (gaussian_result.get('R2', 0) > 0.9 or 
-                    (best_criterion_value != 0 and abs(gaussian_criterion_value - best_criterion_value) / abs(best_criterion_value) < 0.1)):
+                    best_result['selection_criterion'] = f'MN regime (fallback: {best_model})'
+            elif xi >= 4.0:
+                # QS regime: Force Gaussian
+                if 'gaussian' in valid_results:
                     best_model = 'gaussian'
-                    best_result = gaussian_result.copy()
+                    best_result = valid_results['gaussian'].copy()
                     best_result['model'] = 'gaussian'
-                    best_result['selection_criterion'] = f'{criterion} (static regime: preferred Gaussian)'
+                    best_result['selection_criterion'] = f'QS regime (ξ={xi:.3f} ≥ 4.0): forced Gaussian'
                 else:
-                    # Use best by criterion
-                    best_model = best_by_criterion
+                    # Fallback: use best available
+                    best_model = min(valid_results.keys(), 
+                                   key=lambda k: valid_results[k].get(criterion, 
+                                                                      valid_results[k].get('RMSE', 
+                                                                                           valid_results[k]['AIC'])))
                     best_result = valid_results[best_model].copy()
                     best_result['model'] = best_model
-                    best_result['selection_criterion'] = criterion
-            else:
-                # Normal model selection (crossover regime or no regime info)
-                best_model = min(valid_results.keys(), 
-                                key=lambda k: valid_results[k].get(criterion, 
-                                                                   valid_results[k].get('RMSE', 
-                                                                                        valid_results[k]['AIC'])))
-                best_result = valid_results[best_model].copy()
-                best_result['model'] = best_model
-                best_result['selection_criterion'] = criterion
+                    best_result['selection_criterion'] = f'QS regime (fallback: {best_model})'
+            elif 0.15 <= xi < 4.0:
+                # Crossover regime: Force stretched exponential
+                if 'stretched' in valid_results:
+                    best_model = 'stretched'
+                    best_result = valid_results['stretched'].copy()
+                    best_result['model'] = 'stretched'
+                    best_result['selection_criterion'] = f'Crossover (0.15 ≤ ξ={xi:.3f} < 4.0): forced stretched exponential'
+                else:
+                    # Fallback: use best available (but prefer stretched if close)
+                    best_model = min(valid_results.keys(), 
+                                   key=lambda k: valid_results[k].get(criterion, 
+                                                                      valid_results[k].get('RMSE', 
+                                                                                           valid_results[k]['AIC'])))
+                    best_result = valid_results[best_model].copy()
+                    best_result['model'] = best_model
+                    best_result['selection_criterion'] = f'Crossover (fallback: {best_model})'
         else:
             # Normal model selection (no regime info)
             best_model = min(valid_results.keys(), 

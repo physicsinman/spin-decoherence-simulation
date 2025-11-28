@@ -24,7 +24,6 @@ wheels/
 venv/
 env/
 ENV/
-.venv
 
 # IDE
 .vscode/
@@ -33,20 +32,40 @@ ENV/
 *.swo
 *~
 
-# Results and output
-results/
-*.json
-*.png
-*.pdf
-*.csv
-
-# Jupyter Notebook
-.ipynb_checkpoints
+# Jupyter
+.ipynb_checkpoints/
 *.ipynb
 
-# OS
-.DS_Store
-Thumbs.db
+# Results (keep structure, ignore large files)
+results/*.csv
+results/*.txt
+results/figures/*.png
+results/figures/*.pdf
+!results/figures/README.md
 
-legacy/*.zip
-legacy/아카이브*.zip
+# Logs
+*.log
+legacy/*.log
+
+# Archives
+*.zip
+Archive*.zip
+아카이브*.zip
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+.DS_Store
+
+# Test outputs
+test_*.png
+test_output*.csv
+
+# Large data files
+*.h5
+*.hdf5
+
+# Backup files
+*_backup.*
+*_old.*

@@ -52,7 +52,7 @@ COLORS = {
     'echo': '#F97316',     # Vibrant orange
     'theory': '#059669',    # Deep green (more visible)
     'mn_fit': '#DC2626',   # Bright red (more visible)
-    'crossover': '#9333EA', # Purple (distinct from others)
+    'crossover': '#DC143C', # Red/Crimson (distinct from others)
     'qs': '#B45309',       # Dark orange/brown
     'background': '#F9FAFB', # Light gray for background
 }
@@ -60,7 +60,7 @@ COLORS = {
 # Physics parameters
 # NOTE: These must match the actual simulation parameters used in sim_fid_sweep.py
 gamma_e = 1.76e11  # rad/(s·T), electron gyromagnetic ratio
-B_rms = 0.05e-3  # T (50 μT) - matches sim_fid_sweep.py
+B_rms = 0.57e-6  # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
 
 def load_data():
     """Load all data files."""
@@ -118,10 +118,11 @@ def plot_T2_vs_tau_c(data, output_dir):
     fig, ax = plt.subplots(figsize=(8, 6))
     
     # Regime boundaries (calculate first for color coding)
+    # IMPROVEMENT: Narrower crossover range (ξ = 0.5-2.0) for clearer regime distinction
     xi_valid = valid['xi'].values
-    mn_mask = xi_valid < 0.2
-    crossover_mask = (xi_valid >= 0.2) & (xi_valid < 3)
-    qs_mask = xi_valid >= 3
+    mn_mask = xi_valid < 0.5
+    crossover_mask = (xi_valid >= 0.5) & (xi_valid < 2.0)
+    qs_mask = xi_valid >= 2.0
     
     # Plot data with error bars, colored by regime
     if 'T2_lower' in valid.columns and 'T2_upper' in valid.columns:
@@ -130,9 +131,9 @@ def plot_T2_vs_tau_c(data, output_dir):
         yerr = np.array([yerr_lower.values, yerr_upper.values])
         
         # Ensure minimum error bar visibility (even if CI is very small)
-        # For very small CI, use a minimum of 0.5% of T2 value for visibility
+        # For log scale, use a minimum of 5% of T2 value for visibility
         ci_width_pct = (yerr[0] + yerr[1]) / valid['T2'].values * 100
-        min_visible_error = valid['T2'].values * 0.005  # 0.5% of T2 value
+        min_visible_error = valid['T2'].values * 0.05  # 5% of T2 value (increased for better visibility)
         
         # Apply minimum error for visibility
         yerr_adj = yerr.copy()
@@ -150,7 +151,7 @@ def plot_T2_vs_tau_c(data, output_dir):
             ax.errorbar(mn_valid['tau_c'] * 1e6, 
                        mn_valid['T2'] * 1e6,
                        yerr=mn_yerr, fmt='o', color=COLORS['fid'],
-                       markersize=8, capsize=3, capthick=1.5, elinewidth=1.5,  # Enhanced
+                       markersize=8, capsize=5, capthick=2.5, elinewidth=2.5,  # Enhanced for better visibility
                        label='FID (MN)', alpha=0.85, zorder=3, markeredgewidth=0.5)
         if crossover_mask.sum() > 0:
             cross_valid = valid[crossover_mask].copy()
@@ -158,7 +159,7 @@ def plot_T2_vs_tau_c(data, output_dir):
             ax.errorbar(cross_valid['tau_c'] * 1e6, 
                        cross_valid['T2'] * 1e6,
                        yerr=cross_yerr, fmt='o', color=COLORS['crossover'],
-                       markersize=8, capsize=3, capthick=1.5, elinewidth=1.5,  # Enhanced
+                       markersize=8, capsize=5, capthick=2.5, elinewidth=2.5,  # Enhanced for better visibility
                        label='FID (Crossover)', alpha=0.85, zorder=3, markeredgewidth=0.5)
         if qs_mask.sum() > 0:
             qs_valid = valid[qs_mask].copy()
@@ -166,7 +167,7 @@ def plot_T2_vs_tau_c(data, output_dir):
             ax.errorbar(qs_valid['tau_c'] * 1e6, 
                        qs_valid['T2'] * 1e6,
                        yerr=qs_yerr, fmt='o', color=COLORS['qs'],
-                       markersize=8, capsize=3, capthick=1.5, elinewidth=1.5,  # Enhanced
+                       markersize=8, capsize=5, capthick=2.5, elinewidth=2.5,  # Enhanced for better visibility
                        label='FID (QS)', alpha=0.85, zorder=3, markeredgewidth=0.5)
     else:
         # Plot without error bars (all use same marker shape, different colors)
@@ -193,22 +194,23 @@ def plot_T2_vs_tau_c(data, output_dir):
     
     # Plot theory curve only in MN regime (where it's valid)
     xi_theory = Delta_omega * tau_c_theory
-    mask_MN = xi_theory < 0.2  # MN regime (where theory is valid)
+    mask_MN = xi_theory < 0.5  # MN regime (where theory is valid) - updated to match new boundary
     
     # Plot theory curve only in MN regime
     # Note: Theory T₂ = 1/(Δω²τc) is only valid in MN regime
     # In QS regime, T₂ ≈ constant (independent of τc)
+    # Crossover regime has no analytical solution (requires numerical methods)
     if mask_MN.sum() > 0:
         ax.plot(tau_c_theory[mask_MN] * 1e6, T2_MN[mask_MN] * 1e6,
                '--', color=COLORS['theory'], linewidth=2.5, 
-               label='Theory (MN, valid for ξ < 0.2)', alpha=0.9, zorder=2)
+               label='Theory (MN, valid for ξ < 0.5)', alpha=0.9, zorder=2)
     
     # Add QS regime theoretical value (horizontal line, only in QS regime)
     # CORRECTED: QS regime theory is T₂* = √2 / Δω (not 1/Δω)
     # This comes from the static limit of the coherence function: E(t) = exp(-(Δω·t)²/2)
     # At t = T₂*, E(T₂*) = 1/e, so (Δω·T₂*)²/2 = 1, giving T₂* = √2/Δω
     T2_QS_theory = np.sqrt(2.0) / Delta_omega
-    mask_QS = xi_theory >= 3  # QS regime (where theory is valid)
+    mask_QS = xi_theory >= 2.0  # QS regime (where theory is valid) - updated to match new boundary
     
     # Only plot QS theory line in the QS regime range
     if mask_QS.sum() > 0:
@@ -219,7 +221,7 @@ def plot_T2_vs_tau_c(data, output_dir):
         # Plot horizontal line only in QS regime range
         ax.hlines(T2_QS_theory * 1e6, tau_c_QS_min * 1e6, tau_c_QS_max * 1e6,
                  color=COLORS['theory'], linestyle=':', linewidth=2.0, alpha=0.7,
-                 label=f'Theory (QS, T$_2^*$ = √2/Δω ≈ {T2_QS_theory*1e6:.3f} μs, valid for ξ ≥ 3)', zorder=1)
+                 label=f'Theory (QS, T$_2^*$ = √2/Δω ≈ {T2_QS_theory*1e6:.3f} μs, valid for ξ ≥ 2.0)', zorder=1)
     
     # Detect and highlight QS regime saturation (where T2 becomes constant)
     # This indicates simulation limitations in deep QS regime
@@ -252,56 +254,66 @@ def plot_T2_vs_tau_c(data, output_dir):
                     # Add vertical line to mark saturation start
                     ax.axvline(saturation_tau_c * 1e6, color='orange', linestyle='--', 
                              linewidth=1.5, alpha=0.5, zorder=1)
-                    # Add text annotation
-                    ax.text(saturation_tau_c * 1e6, ax.get_ylim()[1] * 0.5,
-                           'Saturation\n(limitation)', rotation=90, fontsize=8,
-                           verticalalignment='center', horizontalalignment='right',
-                           alpha=0.6, color='orange',
-                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.7, edgecolor='orange'))
+                    # IMPROVEMENT: Move annotation to left side to avoid covering data
+                    ax.text(0.02, 0.15, 'Saturation\n(limitation)', 
+                           transform=ax.transAxes, fontsize=7,
+                           verticalalignment='bottom', horizontalalignment='left',
+                           alpha=0.7, color='orange',
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.8, edgecolor='orange'))
     
-    # Add regime boundary lines (ξ = 0.2 and ξ = 3.0)
+    # Add regime boundary lines (ξ = 0.5 and ξ = 2.0) - IMPROVED boundaries
     tau_c_min = valid['tau_c'].min()
     tau_c_max = valid['tau_c'].max()
-    # Calculate tau_c values for ξ = 0.2 and ξ = 3.0
-    tau_c_boundary_02 = 0.2 / Delta_omega
-    tau_c_boundary_30 = 3.0 / Delta_omega
+    # Calculate tau_c values for ξ = 0.5 and ξ = 2.0
+    tau_c_boundary_05 = 0.5 / Delta_omega
+    tau_c_boundary_20 = 2.0 / Delta_omega
     
     # Only show boundaries if they're within the data range
-    if tau_c_min <= tau_c_boundary_02 <= tau_c_max:
-        ax.axvline(tau_c_boundary_02 * 1e6, color='gray', linestyle=':', 
+    if tau_c_min <= tau_c_boundary_05 <= tau_c_max:
+        ax.axvline(tau_c_boundary_05 * 1e6, color='gray', linestyle=':', 
                   linewidth=1.5, alpha=0.5, zorder=1)
         # Add text annotation
-        ax.text(tau_c_boundary_02 * 1e6, ax.get_ylim()[1] * 0.7, 
-               r'$\xi = 0.2$', rotation=90, fontsize=9, 
+        ax.text(tau_c_boundary_05 * 1e6, ax.get_ylim()[1] * 0.7, 
+               r'$\xi = 0.5$', rotation=90, fontsize=9, 
                verticalalignment='bottom', alpha=0.7)
     
-    if tau_c_min <= tau_c_boundary_30 <= tau_c_max:
-        ax.axvline(tau_c_boundary_30 * 1e6, color='gray', linestyle=':', 
+    if tau_c_min <= tau_c_boundary_20 <= tau_c_max:
+        ax.axvline(tau_c_boundary_20 * 1e6, color='gray', linestyle=':', 
                   linewidth=1.5, alpha=0.5, zorder=1)
         # Add text annotation
-        ax.text(tau_c_boundary_30 * 1e6, ax.get_ylim()[1] * 0.7, 
-               r'$\xi = 3.0$', rotation=90, fontsize=9, 
+        ax.text(tau_c_boundary_20 * 1e6, ax.get_ylim()[1] * 0.7, 
+               r'$\xi = 2.0$', rotation=90, fontsize=9, 
                verticalalignment='bottom', alpha=0.7)
     
     # Add information about parameters in the plot
     # Calculate actual parameter values for display
     Delta_omega_display = Delta_omega / 1e6  # Convert to MHz for readability
-    param_text = f'γ$_e$ = {gamma_e/1e11:.2f}×10¹¹ rad/(s·T), B$_{{rms}}$ = {B_rms*1e6:.1f} μT\n'
+    param_text = f'γ$_e$ = {gamma_e/1e11:.2f}×10¹¹ rad/(s·T), B$_{{rms}}$ = {B_rms*1e6:.2f} μT\n'
     param_text += f'Δω = {Delta_omega_display:.2f} MHz, T$_2^*$ (QS) = {T2_QS_theory*1e6:.3f} μs'
-    
-    # Add parameter info as text box (small, non-intrusive)
-    ax.text(0.02, 0.98, param_text, transform=ax.transAxes, fontsize=9,
-           verticalalignment='top', horizontalalignment='left',
-           bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8, edgecolor='gray'),
-           family='monospace')
     
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel(r'$\tau_c$ (μs)', fontsize=12, fontweight='bold')
     ax.set_ylabel(r'$T_2$ (μs)', fontsize=12, fontweight='bold')
     ax.set_title('FID Coherence Time vs Correlation Time', fontsize=13, fontweight='bold', pad=10)
-    ax.legend(loc='best', frameon=True, fancybox=True, shadow=True, fontsize=10)
+    # IMPROVEMENT: Legend moved to center right to avoid covering boundaries
+    ax.legend(loc='center right', frameon=True, fancybox=True, shadow=True, fontsize=10,  # Slightly reduced
+             bbox_to_anchor=(0.995, 0.58))  # Moved up slightly
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.8)
+    
+    # IMPROVEMENT: Parameter info moved to right middle, slightly larger and below legend to avoid overlap
+    ax.text(0.995, 0.42, param_text, transform=ax.transAxes, fontsize=10,  # Increased for publication, moved up
+           verticalalignment='top', horizontalalignment='right',
+           bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.8, edgecolor='gray'),  # Increased padding
+           family='monospace')
+    
+    # IMPROVEMENT: Add note about crossover regime (no analytical solution)
+    # Place in lower left corner to avoid covering data points
+    crossover_note = 'Note: Crossover regime (0.5 ≤ ξ < 2.0)\nhas no analytical solution'
+    ax.text(0.02, 0.02, crossover_note, transform=ax.transAxes, fontsize=11,  # Increased for publication
+           verticalalignment='bottom', horizontalalignment='left',
+           bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.7, edgecolor='purple'),
+           color='purple', style='italic')
     
     plt.tight_layout()
     output_path = output_dir / 'fig1_T2_vs_tau_c.png'
@@ -318,7 +330,7 @@ def plot_MN_regime_slope(data, output_dir):
     df = data['fid']
     valid = df[df['T2'].notna()].copy()
     
-    # MN regime (xi < 0.2)
+    # MN regime (xi < 0.2) - matches figure title
     mn_data = valid[valid['xi'] < 0.2].copy()
     
     if len(mn_data) < 3:
@@ -441,8 +453,8 @@ def plot_echo_gain(data, output_dir):
         gain_diff = valid_physical_xi['echo_gain'].diff()
         xi_diff = valid_physical_xi['xi'].diff()
         
-        # In crossover/QS regime (xi >= 0.2), gain should increase with xi
-        crossover_qs_mask = valid_physical_xi['xi'] >= 0.2
+        # In crossover/QS regime (xi >= 0.5), gain should increase with xi
+        crossover_qs_mask = valid_physical_xi['xi'] >= 0.5
         if crossover_qs_mask.sum() > 1:
             unphysical_mask = (gain_diff < -0.3) & (xi_diff > 0) & crossover_qs_mask
             if unphysical_mask.sum() > 0:
@@ -480,12 +492,12 @@ def plot_echo_gain(data, output_dir):
     ax.axhline(1.0, color='gray', linestyle='--', linewidth=1.5,
               alpha=0.6, label='No gain (gain = 1)', zorder=1)
     
-    # Regime boundaries (use valid_physical)
+    # Regime boundaries (use valid_physical) - IMPROVED: Match Figure 1 boundaries
     if 'xi' in valid_physical.columns:
         xi_valid = valid_physical['xi'].values
-        mn_mask = xi_valid < 0.2
-        crossover_mask = (xi_valid >= 0.2) & (xi_valid < 3)
-        qs_mask = xi_valid >= 3
+        mn_mask = xi_valid < 0.5
+        crossover_mask = (xi_valid >= 0.5) & (xi_valid < 2.0)
+        qs_mask = xi_valid >= 2.0
         
         if mn_mask.sum() > 0:
             ax.scatter(valid_physical[mn_mask]['tau_c'] * 1e6,
@@ -504,6 +516,14 @@ def plot_echo_gain(data, output_dir):
     ax.axhline(1.0, color='red', linestyle='--', linewidth=1.5,
               alpha=0.7, label='Minimum (gain = 1)', zorder=1)
     
+    # Add annotation for red points (gain = 1.0)
+    red_points = valid_physical[valid_physical['echo_gain'] == 1.0]
+    if len(red_points) > 0:
+        # Mark red points with different style
+        ax.scatter(red_points['tau_c'] * 1e6, red_points['echo_gain'],
+                  color='red', s=120, alpha=0.8, zorder=5, marker='x', linewidths=2.5,
+                  label=f'Fitting failure (T$_{{2,echo}}$ < T$_{{2,FID}}$)')
+    
     ax.set_xscale('log')
     ax.set_xlabel(r'$\tau_c$ (μs)', fontsize=13, fontweight='bold')
     ax.set_ylabel(r'Echo Gain (T$_{2,echo}$ / T$_{2,FID}$)', fontsize=13, fontweight='bold')
@@ -511,17 +531,23 @@ def plot_echo_gain(data, output_dir):
     ax.legend(loc='best', frameon=True, fancybox=True, shadow=True, fontsize=11)
     ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.8)
     
-    # PUBLICATION QUALITY: Set y-axis limits for better presentation
-    # Allow higher y_max to show high gains in MN regime, but cap at reasonable value
-    y_min = max(0.8, valid_physical['echo_gain'].min() * 0.9)
-    # For MN regime, gains can be very high (>10), so use adaptive y_max
-    max_gain = valid_physical['echo_gain'].max()
-    if max_gain > 10:
-        # High gains in MN regime - use log scale or cap at reasonable value
-        y_max = min(100.0, max_gain * 1.2)  # Cap at 100 for visibility
-    else:
-        y_max = min(6.0, max_gain * 1.1)
+    # IMPROVEMENT: Add text annotation explaining red points - positioned better
+    if len(red_points) > 0:
+        ax.text(0.98, 0.05, 
+               f'Note: {len(red_points)} points show fitting failure\n(T$_{{2,echo}}$ < T$_{{2,FID}}$), set to gain = 1',
+               transform=ax.transAxes, fontsize=8,
+               horizontalalignment='right', verticalalignment='bottom',
+               bbox=dict(boxstyle='round,pad=0.4', facecolor='yellow', alpha=0.8, edgecolor='red', linewidth=1.5))
+    
+    # IMPROVEMENT: Set y-axis limits for better presentation
+    # Cap at 6.0 for clarity (most gains are in 1-6 range)
+    y_min = 0.8
+    y_max = 6.5  # Slightly above max cap (6.0) for visibility
     ax.set_ylim([y_min, y_max])
+    
+    # Add horizontal line at gain = 6.0 to show cap
+    ax.axhline(6.0, color='gray', linestyle=':', linewidth=1.0,
+              alpha=0.4, zorder=1, label='Maximum cap (gain = 6)')
     
     plt.tight_layout()
     output_path = output_dir / 'fig3_echo_gain.png'
@@ -530,11 +556,7 @@ def plot_echo_gain(data, output_dir):
     plt.close()
 
 def plot_noise_trajectories(data, output_dir):
-    """Noise trajectories (fast vs slow) - Supplementary figure."""
-    # Create supplementary directory
-    supp_dir = output_dir / 'supplementary'
-    supp_dir.mkdir(exist_ok=True)
-    
+    """Figure: OU Noise Trajectories (fast vs slow comparison)."""
     # Check if noise trajectory files exist
     data_dir = Path('results')
     fast_file = data_dir / 'noise_trajectory_fast.csv'
@@ -545,58 +567,97 @@ def plot_noise_trajectories(data, output_dir):
         # Try to generate them
         try:
             import subprocess
-            subprocess.run(['python', 'generate_noise_examples.py'], check=True)
-        except:
-            print("❌ Could not generate noise trajectories. Skipping Figure 4.")
+            subprocess.run(['python3', 'generate_noise_data.py'], check=True)
+        except Exception as e:
+            print(f"❌ Could not generate noise trajectories: {e}")
+            print("   Please run: python3 generate_noise_data.py")
             return
     
     # Load data
     df_fast = pd.read_csv(fast_file)
     df_slow = pd.read_csv(slow_file)
     
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    # Physics parameters for regime calculation
+    gamma_e = 1.76e11  # rad/(s·T)
+    B_rms = 0.57e-6    # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
+    
+    # Calculate xi for each
+    tau_c_fast = 1e-8  # s (10 ns)
+    tau_c_slow = 1e-4  # s (100 μs)
+    xi_fast = gamma_e * B_rms * tau_c_fast
+    xi_slow = gamma_e * B_rms * tau_c_slow
+    
+    fig, axes = plt.subplots(2, 1, figsize=(12, 8))
     fig.patch.set_facecolor('white')
     
-    # Panel A: Fast noise
+    # Panel A: Fast noise (MN regime)
     ax1 = axes[0]
     t_fast = df_fast['time (s)'].values
     B_fast = df_fast['B_z (T)'].values
     
-    # Plot only a subset for clarity (every 10th point)
-    step = max(1, len(t_fast) // 2000)
+    # Plot trajectory - subsample for clarity
+    step = max(1, len(t_fast) // 5000)  # Show up to 5000 points
     ax1.plot(t_fast[::step] * 1e9, B_fast[::step] * 1e6, 
-            '-', color=COLORS['fid'], linewidth=1.5, alpha=0.8)
+            '-', color=COLORS.get('fid', '#2E86AB'), linewidth=1.2, alpha=0.85)
+    
+    # Add tau_c indicator lines
+    tau_c_fast_ns = tau_c_fast * 1e9
+    ax1.axvline(tau_c_fast_ns, color='red', linestyle='--', linewidth=1.5, alpha=0.6, label=r'$\tau_c$')
+    ax1.axvline(2*tau_c_fast_ns, color='red', linestyle=':', linewidth=1.0, alpha=0.4)
+    ax1.axvline(3*tau_c_fast_ns, color='red', linestyle=':', linewidth=1.0, alpha=0.4)
+    
     ax1.set_xlabel('Time (ns)', fontsize=13, fontweight='bold')
     ax1.set_ylabel(r'$\delta B_z$ (μT)', fontsize=13, fontweight='bold')
-    ax1.set_title(r'Fast Noise: $\tau_c = 10$ ns (Motional Narrowing Regime)', 
+    ax1.set_title(r'Fast Fluctuation: $\tau_c = 10$ ns, $\xi = {:.3f}$ (Motional Narrowing)'.format(xi_fast), 
                  fontsize=14, fontweight='bold', pad=10)
     ax1.grid(True, alpha=0.3, linestyle='--', linewidth=0.8)
+    ax1.legend(loc='upper right', fontsize=10, framealpha=0.9)
     ax1.text(0.02, 0.95, '(a)', transform=ax1.transAxes, 
             fontsize=14, fontweight='bold', verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    # Panel B: Slow noise
+    # Add statistics text
+    B_rms_emp_fast = np.std(B_fast) * 1e6
+    ax1.text(0.98, 0.05, f'RMS: {B_rms_emp_fast:.2f} μT', 
+            transform=ax1.transAxes, fontsize=10,
+            horizontalalignment='right',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+    
+    # Panel B: Slow noise (QS regime)
     ax2 = axes[1]
     t_slow = df_slow['time (s)'].values
     B_slow = df_slow['B_z (T)'].values
     
-    # Plot only a subset for clarity
-    step = max(1, len(t_slow) // 2000)
+    # Plot trajectory - subsample for clarity
+    step = max(1, len(t_slow) // 5000)  # Show up to 5000 points
     ax2.plot(t_slow[::step] * 1e6, B_slow[::step] * 1e6,
-            '-', color=COLORS['qs'], linewidth=1.5, alpha=0.8)
+            '-', color=COLORS.get('qs', '#A23B72'), linewidth=1.2, alpha=0.85)
+    
+    # Add tau_c indicator lines
+    tau_c_slow_us = tau_c_slow * 1e6
+    ax2.axvline(tau_c_slow_us, color='red', linestyle='--', linewidth=1.5, alpha=0.6, label=r'$\tau_c$')
+    ax2.axvline(2*tau_c_slow_us, color='red', linestyle=':', linewidth=1.0, alpha=0.4)
+    ax2.axvline(3*tau_c_slow_us, color='red', linestyle=':', linewidth=1.0, alpha=0.4)
+    
     ax2.set_xlabel('Time (μs)', fontsize=13, fontweight='bold')
     ax2.set_ylabel(r'$\delta B_z$ (μT)', fontsize=13, fontweight='bold')
-    ax2.set_title(r'Slow Noise: $\tau_c = 10$ μs (Quasi-Static Regime)', 
+    ax2.set_title(r'Slow Fluctuation: $\tau_c = 100$ μs, $\xi = {:.1f}$ (Quasi-Static)'.format(xi_slow), 
                  fontsize=14, fontweight='bold', pad=10)
     ax2.grid(True, alpha=0.3, linestyle='--', linewidth=0.8)
+    ax2.legend(loc='upper right', fontsize=10, framealpha=0.9)
     ax2.text(0.02, 0.95, '(b)', transform=ax2.transAxes,
             fontsize=14, fontweight='bold', verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
+    # Add statistics text
+    B_rms_emp_slow = np.std(B_slow) * 1e6
+    ax2.text(0.98, 0.05, f'RMS: {B_rms_emp_slow:.2f} μT', 
+            transform=ax2.transAxes, fontsize=10,
+            horizontalalignment='right',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.7))
+    
     plt.tight_layout()
-    supp_dir = output_dir / 'supplementary'
-    supp_dir.mkdir(exist_ok=True)
-    output_path = supp_dir / 'noise_trajectories.png'
+    output_path = output_dir / 'fig_noise_trajectories.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"✅ Saved: {output_path}")
     plt.close()
@@ -757,7 +818,15 @@ def plot_conceptual_diagrams(output_dir):
     plt.close(fig2)
 
 def plot_representative_curves(data, output_dir):
-    """Figure 4: Representative coherence decay curves."""
+    """Figure 4: Representative coherence decay curves - IMPROVED VERSION.
+    
+    Improvements:
+    1. Dynamic x-axis ranges based on data availability
+    2. Echo peak detection and annotation
+    3. Better visualization for small tau_c differences
+    4. Clear indication of data ranges
+    5. Enhanced visual quality
+    """
     if 'fid_curves' not in data or len(data['fid_curves']) == 0:
         print("⚠️  FID curves not found, skipping Figure 4")
         return
@@ -810,7 +879,7 @@ def plot_representative_curves(data, output_dir):
         selected_keys = selected_keys[:4]
     
     # MAXIMUM QUALITY: Larger figure size
-    fig, axes = plt.subplots(2, 2, figsize=(14, 12))  # Increased from (12, 10)
+    fig, axes = plt.subplots(2, 2, figsize=(16, 13))  # Increased for better visibility
     fig.patch.set_facecolor('white')
     axes = axes.flatten()
     
@@ -824,7 +893,7 @@ def plot_representative_curves(data, output_dir):
         # Parse tau_c value - improved parsing
         try:
             # Handle scientific notation properly
-            tau_c_str = tau_c_key.replace('e-', 'e-').replace('e+', 'e+')
+            tau_c_str = tau_c_key.replace('tau_c_', '').replace('e-', 'e-').replace('e+', 'e+')
             # Handle cases like "1e-08" or "1e-8"
             if 'e-' in tau_c_str:
                 parts = tau_c_str.split('e-')
@@ -854,83 +923,304 @@ def plot_representative_curves(data, output_dir):
         elif 'E' in fid_df.columns:
             E_col = 'E'
         
-        # Plot FID
-        if 'time (s)' in fid_df.columns and E_col is not None:
-            t = fid_df['time (s)'].values
-            E = fid_df[E_col].values
-            ax.plot(t * 1e6, E, '-', color=COLORS['fid'], linewidth=2,
-                   label='FID', alpha=0.8)
+        # Determine data ranges for dynamic axis limits
+        t_fid = None
+        E_fid = None
+        t_echo = None
+        E_echo = None
+        echo_peak_idx = None
+        echo_peak_time = None
+        echo_peak_value = None
         
-        # Plot Echo if available
+        # Get FID data
+        if 'time (s)' in fid_df.columns and E_col is not None:
+            t_fid = fid_df['time (s)'].values
+            E_fid = fid_df[E_col].values
+        
+        # Get Echo data
+        # CRITICAL FIX: Echo data contains pulse delay τ, but echo is measured at time 2τ
+        # For Hahn echo sequence (π/2 - τ - π - τ), the total time is 2τ
+        # To compare with FID on the same time axis, we need to use 2τ as the time coordinate
         if 'echo_curves' in data and tau_c_key in data['echo_curves']:
             echo_df = data['echo_curves'][tau_c_key]
-            E_echo_col = None
-            if '|E|' in echo_df.columns:
-                E_echo_col = '|E|'
-            elif 'P_echo(t)' in echo_df.columns:
-                E_echo_col = 'P_echo(t)'
-            elif 'E_echo' in echo_df.columns:
-                E_echo_col = 'E_echo'
-            
-            # Try different time column names
-            time_col = None
-            for col in ['time (s)', 't', 'time', 'tau']:
-                if col in echo_df.columns:
-                    time_col = col
-                    break
-            
-            if time_col is not None and E_echo_col is not None:
-                t_echo = echo_df[time_col].values
-                E_echo = echo_df[E_echo_col].values
-                # Filter out NaN values
-                valid_mask = ~(np.isnan(t_echo) | np.isnan(E_echo))
-                if valid_mask.sum() > 0:
-                    t_echo_valid = t_echo[valid_mask]
-                    E_echo_valid = E_echo[valid_mask]
-                    
-                    # Plot echo with thicker line and higher zorder to make it visible
-                    ax.plot(t_echo_valid * 1e6, E_echo_valid, 
-                           '--', color=COLORS['echo'],
-                           linewidth=3.0, label='Hahn Echo', alpha=0.9, zorder=5)
-                    
-                    # For very short echo ranges, add an inset to show echo clearly
-                    if t_echo_valid.max() * 1e6 < 1.0:  # If echo max < 1 μs
-                        # Create inset axes in upper right corner
-                        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-                        axins = inset_axes(ax, width="30%", height="25%", loc='upper right',
-                                         bbox_to_anchor=(0.02, 0.02, 1, 1), bbox_transform=ax.transAxes)
-                        axins.plot(t_echo_valid * 1e6, E_echo_valid, 
-                                 '--', color=COLORS['echo'], linewidth=2.5, alpha=0.9)
-                        axins.set_xlim([t_echo_valid.min() * 1e6 * 0.9, t_echo_valid.max() * 1e6 * 1.1])
-                        axins.set_ylim([E_echo_valid.min() * 0.99, E_echo_valid.max() * 1.01])
-                        axins.tick_params(labelsize=8)
-                        axins.set_xlabel('Time (μs)', fontsize=8)
-                        axins.set_ylabel('|E|', fontsize=8)
-                        axins.grid(True, alpha=0.3)
-        
-        # Set xlim based on FID (don't truncate FID to show echo)
-        if 'time (s)' in fid_df.columns:
-            t = fid_df['time (s)'].values
-            # Show FID up to where it decays significantly
-            if E_col is not None:
-                E = fid_df[E_col].values
-                decay_mask = E > 0.01
-                if decay_mask.sum() > 0:
-                    t_max = t[decay_mask].max() * 1e6
+            if 'time (s)' in echo_df.columns and 'P_echo(t)' in echo_df.columns:
+                tau_echo = echo_df['time (s)'].values  # This is actually τ (pulse delay)
+                t_echo = 2.0 * tau_echo  # Convert to actual time: 2τ (total sequence time)
+                E_echo = echo_df['P_echo(t)'].values
+                # Find echo peak (maximum value, but skip initial points to find actual peak)
+                # Hahn Echo typically increases from t=0, reaches a peak, then decays
+                # Skip first 5% of points to avoid using initial value as peak
+                if len(E_echo) > 10:
+                    skip_points = max(1, int(len(E_echo) * 0.05))
+                    # Find peak in the remaining data
+                    E_echo_search = E_echo[skip_points:]
+                    t_echo_search = t_echo[skip_points:]
+                    if len(E_echo_search) > 0:
+                        echo_peak_idx_search = np.argmax(E_echo_search)
+                        echo_peak_idx = skip_points + echo_peak_idx_search
+                        echo_peak_time = t_echo[echo_peak_idx] * 1e6  # Convert to μs (already 2τ)
+                        echo_peak_value = E_echo[echo_peak_idx]
+                        # Only mark as peak if it's significantly larger than initial value
+                        if echo_peak_value > E_echo[0] * 1.01:  # At least 1% larger than initial
+                            pass  # Valid peak
+                        else:
+                            # If peak is not significantly larger, don't mark it
+                            echo_peak_time = None
+                            echo_peak_value = None
+                    else:
+                        echo_peak_time = None
+                        echo_peak_value = None
+                elif len(E_echo) > 0:
+                    # For very short arrays, just use maximum
+                    echo_peak_idx = np.argmax(E_echo)
+                    echo_peak_time = t_echo[echo_peak_idx] * 1e6
+                    echo_peak_value = E_echo[echo_peak_idx]
+                    # Only mark if not at t=0
+                    if echo_peak_idx == 0:
+                        echo_peak_time = None
+                        echo_peak_value = None
                 else:
-                    t_max = t.max() * 1e6
-            else:
-                t_max = t.max() * 1e6
-            ax.set_xlim([0, t_max * 1.05])
+                    echo_peak_time = None
+                    echo_peak_value = None
         
-        ax.set_xlabel('Time (μs)', fontsize=12, fontweight='bold')
-        ax.set_ylabel(r'$|E(t)|$', fontsize=12, fontweight='bold')
-        ax.set_title(f'τc = {tau_c_val*1e6:.2f} μs', fontsize=13, fontweight='bold', pad=8)
-        ax.legend(loc='upper right', fontsize=10, frameon=True, fancybox=True, shadow=True)
-        ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.8)
-        ax.set_ylim([0, 1.1])
+        # Determine optimal x-axis range based on data availability
+        # Strategy: Show actual data range, but ensure meaningful decay is visible
+        # CRITICAL: Echo cannot start at t=0! Minimum time is 2*τ_min (Hahn echo sequence)
+        x_min = 0.0
+        echo_min_time = None
+        if t_echo is not None and len(t_echo) > 0:
+            # Echo starts at minimum 2τ, not at t=0
+            echo_min_time = t_echo.min() * 1e6  # Convert to μs
+            # For comparison with FID, we can still start x_min at 0, but Echo won't have data there
+            # This is physically correct: Echo requires τ > 0, so 2τ > 0
+        
+        # Get actual data ranges first
+        t_fid_max = 0.0
+        t_echo_max = 0.0
+        if t_fid is not None and len(t_fid) > 0:
+            t_fid_max = t_fid.max() * 1e6  # Convert to μs
+        if t_echo is not None and len(t_echo) > 0:
+            t_echo_max = t_echo.max() * 1e6  # Convert to μs
+        
+        # Find where FID decays to significant level (based on regime)
+        # Use data-driven approach: show meaningful decay for each regime
+        x_max_fid = t_fid_max
+        if t_fid is not None and E_fid is not None and len(t_fid) > 0:
+            t_fid_us = t_fid * 1e6
+            if tau_c_val <= 1e-7:  # MN regime - need much longer range to see decay
+                # For very small tau_c (1e-8), show where it decays to 0.99 (about 95 μs)
+                # For 1e-7, show where it decays to 0.90 (about 103 μs)
+                if tau_c_val <= 1e-8:
+                    # Show decay to 0.99 (visible decay in MN regime)
+                    decay_idx = np.where(E_fid <= 0.99)[0]
+                    if len(decay_idx) > 0:
+                        x_max_fid = min(t_fid_us[decay_idx[0]] * 1.3, t_fid_max, 150.0)
+                    else:
+                        x_max_fid = min(t_fid_max, 100.0)
+                else:  # 1e-7
+                    # Show decay to 0.90 (more visible decay)
+                    decay_idx = np.where(E_fid <= 0.90)[0]
+                    if len(decay_idx) > 0:
+                        x_max_fid = min(t_fid_us[decay_idx[0]] * 1.2, t_fid_max, 150.0)
+                    else:
+                        x_max_fid = min(t_fid_max, 100.0)
+            elif tau_c_val >= 1e-6:  # QS regime
+                # Show up to where it decays to 0.5 (significant decay)
+                # For 1e-6, decay to 0.5 is at ~69 μs
+                # For 1e-5, decay to 0.5 is at ~13 μs
+                decay_idx = np.where(E_fid <= 0.5)[0]
+                if len(decay_idx) > 0:
+                    x_max_fid = min(t_fid_us[decay_idx[0]] * 1.3, t_fid_max, 100.0)
+                else:
+                    x_max_fid = min(t_fid_max, 50.0)
+            else:  # Crossover
+                # Show up to where it decays to 0.5
+                decay_idx = np.where(E_fid <= 0.5)[0]
+                if len(decay_idx) > 0:
+                    x_max_fid = min(t_fid_us[decay_idx[0]] * 1.2, t_fid_max, 80.0)
+                else:
+                    x_max_fid = min(t_fid_max, 40.0)
+        
+        # Similar logic for Echo
+        x_max_echo = t_echo_max
+        if t_echo is not None and E_echo is not None and len(t_echo) > 0:
+            t_echo_us = t_echo * 1e6
+            if tau_c_val <= 1e-7:  # MN regime - need longer range
+                # Similar logic to FID
+                if tau_c_val <= 1e-8:
+                    decay_idx = np.where(E_echo <= 0.99)[0]
+                    if len(decay_idx) > 0:
+                        x_max_echo = min(t_echo_us[decay_idx[0]] * 1.3, t_echo_max, 150.0)
+                    else:
+                        x_max_echo = min(t_echo_max, 100.0)
+                else:  # 1e-7
+                    decay_idx = np.where(E_echo <= 0.90)[0]
+                    if len(decay_idx) > 0:
+                        x_max_echo = min(t_echo_us[decay_idx[0]] * 1.2, t_echo_max, 150.0)
+                    else:
+                        x_max_echo = min(t_echo_max, 100.0)
+            elif tau_c_val >= 1e-6:  # QS regime
+                # Show decay to 0.5 (significant decay)
+                decay_idx = np.where(E_echo <= 0.5)[0]
+                if len(decay_idx) > 0:
+                    x_max_echo = min(t_echo_us[decay_idx[0]] * 1.3, t_echo_max, 200.0)
+                else:
+                    x_max_echo = min(t_echo_max, 100.0)
+            else:  # Crossover
+                decay_idx = np.where(E_echo <= 0.5)[0]
+                if len(decay_idx) > 0:
+                    x_max_echo = min(t_echo_us[decay_idx[0]] * 1.2, t_echo_max, 80.0)
+                else:
+                    x_max_echo = min(t_echo_max, 40.0)
+        
+        # Set x-axis range: FIXED LOGIC - Prioritize showing FID decay
+        # CRITICAL: Even if Echo is short, show FID decay properly
+        if tau_c_val <= 1e-7:  # MN regime
+            # For MN regime, FID decay is the main feature
+            # Always show FID decay even if Echo is short
+            if t_fid_max > t_echo_max * 5:  # FID is much longer than Echo
+                # Use FID calculated range to show meaningful decay
+                x_max = min(x_max_fid, t_fid_max * 1.05)
+                # Ensure we show at least up to decay point
+                if x_max < 50.0 and x_max_fid > 50.0:
+                    x_max = min(x_max_fid, 150.0)  # Show at least up to decay point
+            elif t_echo_max < t_fid_max * 0.1:  # Echo is extremely short (< 10% of FID)
+                # Echo is too short - show FID decay instead
+                # Use FID range to show meaningful decay
+                x_max = min(x_max_fid, t_fid_max * 1.05)
+                if x_max < 50.0 and x_max_fid > 50.0:
+                    x_max = min(x_max_fid, 150.0)
+            else:
+                # Use the longer of the two
+                x_max = min(max(x_max_fid, x_max_echo), max(t_fid_max, t_echo_max) * 1.05)
+            
+            # Removed: Warning annotation - not appropriate for publication
+        elif tau_c_val >= 1e-6:  # QS regime
+            # For QS, Echo might be longer - use the maximum that shows decay
+            x_max = min(max(x_max_fid, x_max_echo), max(t_fid_max, t_echo_max) * 1.05)
+        else:  # Crossover
+            x_max = min(max(x_max_fid, x_max_echo), max(t_fid_max, t_echo_max) * 1.05)
+        
+        # Final safety check: ensure we have a reasonable range
+        if x_max < 1.0:
+            x_max = max(x_max, min(t_fid_max, t_echo_max) if (t_fid_max > 0 or t_echo_max > 0) else 1.0)
+        
+        # Plot FID with intelligent sampling for large datasets
+        if t_fid is not None and E_fid is not None:
+            mask_fid = (t_fid * 1e6 >= x_min) & (t_fid * 1e6 <= x_max)
+            if mask_fid.sum() > 0:
+                t_fid_plot = t_fid[mask_fid] * 1e6
+                E_fid_plot = E_fid[mask_fid]
+                # If too many points, sample intelligently (keep more points where decay is fast)
+                if len(t_fid_plot) > 5000:
+                    # Sample more densely at the beginning and end, less in the middle
+                    n_samples = 5000
+                    # Get indices for sampling
+                    indices = np.linspace(0, len(t_fid_plot) - 1, n_samples, dtype=int)
+                    t_fid_plot = t_fid_plot[indices]
+                    E_fid_plot = E_fid_plot[indices]
+                # DEBUG: Ensure we have valid data
+                if len(t_fid_plot) > 0 and len(E_fid_plot) > 0:
+                    ax.plot(t_fid_plot, E_fid_plot, 
+                           '-', color=COLORS['fid'], linewidth=2.5,
+                           label='FID', alpha=0.9, zorder=2)
+                else:
+                    print(f"⚠️  WARNING: No FID data to plot for {tau_c_key}")
+        
+        # Plot Echo curve if available with intelligent sampling
+        if t_echo is not None and E_echo is not None:
+            mask_echo = (t_echo * 1e6 >= x_min) & (t_echo * 1e6 <= x_max)
+            if mask_echo.sum() > 0:
+                t_echo_plot = t_echo[mask_echo] * 1e6
+                E_echo_plot = E_echo[mask_echo]
+                # If too many points, sample intelligently
+                if len(t_echo_plot) > 5000:
+                    n_samples = 5000
+                    indices = np.linspace(0, len(t_echo_plot) - 1, n_samples, dtype=int)
+                    t_echo_plot = t_echo_plot[indices]
+                    E_echo_plot = E_echo_plot[indices]
+                ax.plot(t_echo_plot, E_echo_plot, 
+                       '--', color=COLORS['echo'], linewidth=2.5,
+                       label='Hahn Echo', alpha=0.9, zorder=3)
+                
+                # CRITICAL: Mark the actual starting point of Echo (2τ_min)
+                # This makes it visually clear that Echo doesn't start at t=0
+                if echo_min_time is not None and echo_min_time >= x_min and echo_min_time <= x_max:
+                    # Find the index of the first point
+                    first_idx = np.argmin(np.abs(t_echo_plot - echo_min_time))
+                    if first_idx < len(E_echo_plot):
+                        ax.plot(echo_min_time, E_echo_plot[first_idx], 'o',
+                               color=COLORS['echo'], markersize=6,
+                               markeredgecolor='white', markeredgewidth=1.0,
+                               zorder=4, label='Echo start (2τ_min)')
+                
+                # Mark echo peak if it's within the visible range
+                if echo_peak_time is not None and x_min <= echo_peak_time <= x_max:
+                    ax.plot(echo_peak_time, echo_peak_value, 'o', 
+                           color=COLORS['echo'], markersize=8, 
+                           markeredgecolor='white', markeredgewidth=1.5,
+                           zorder=4, label='Echo Peak')
+                    # Add annotation for echo peak
+                    ax.annotate(f'Peak\n{echo_peak_time:.2f} μs', 
+                              xy=(echo_peak_time, echo_peak_value),
+                              xytext=(echo_peak_time + 0.15*x_max, echo_peak_value + 0.1),
+                              fontsize=9, color=COLORS['echo'],
+                              arrowprops=dict(arrowstyle='->', color=COLORS['echo'], 
+                                           lw=1.5, alpha=0.7),
+                              bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
+                                       edgecolor=COLORS['echo'], alpha=0.8),
+                              zorder=5)
+        
+        # Set axis limits
+        ax.set_xlim([x_min, x_max])
+        
+        # Set y-axis range: Always use 0 to 1 for consistent visualization (복사본 style)
+        # This matches the reference graph where y-axis is fixed from 0 to 1
+        y_min = 0.0
+        y_max = 1.0
+        ax.set_ylim([y_min, y_max])
+        
+        # Labels and title - Increased font sizes for publication
+        ax.set_xlabel('Time (μs)', fontsize=16, fontweight='bold')
+        ax.set_ylabel(r'$|E(t)|$', fontsize=16, fontweight='bold')
+        ax.set_title(f'τc = {tau_c_val*1e6:.2f} μs', fontsize=18, fontweight='bold', pad=10)
+        
+        # Legend - only show if we have data
+        handles, labels = ax.get_legend_handles_labels()
+        if len(handles) > 0:
+            # Remove duplicate labels (in case echo peak is marked)
+            seen = set()
+            unique_handles = []
+            unique_labels = []
+            for h, l in zip(handles, labels):
+                if l not in seen:
+                    seen.add(l)
+                    unique_handles.append(h)
+                    unique_labels.append(l)
+            ax.legend(unique_handles, unique_labels, loc='upper right', 
+                     fontsize=14, frameon=True, fancybox=True, shadow=True,
+                     framealpha=0.95)
+        
+        # Grid
+        ax.grid(True, alpha=0.3, linestyle='--', linewidth=0.6)
+        
+        # Add text annotation if echo data is truncated
+        # Removed: "Echo data extends to ..." - technical info, not needed for publication
+        
+        # CRITICAL: Add note that Echo starts at 2τ_min, not t=0
+        # This is physically important: Hahn echo requires τ > 0, so 2τ > 0
+        if echo_min_time is not None and echo_min_time > 0.001:  # Only show if > 0.001 μs
+            ax.text(0.02, 0.25, f'Note: Echo starts at t = {echo_min_time:.3f} μs\n(2τ_min, not t=0)', 
+                   transform=ax.transAxes, fontsize=12,  # Increased for publication
+                   ha='left', va='bottom',
+                   bbox=dict(boxstyle='round,pad=0.4', facecolor='lightyellow', 
+                            alpha=0.7, edgecolor='orange'),
+                   zorder=1)
+        
+        # Removed: "Echo decay is very small in MN regime" - can be explained in text
     
-    plt.tight_layout()
+    # IMPROVEMENT: Adjusted spacing for better space efficiency
+    plt.tight_layout(pad=2.0, w_pad=2.5, h_pad=2.5)
     output_path = output_dir / 'fig4_representative_curves.png'
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"✅ Saved: {output_path}")
@@ -1181,12 +1471,16 @@ def main():
     plot_echo_gain(data, output_dir)
     
     # Figure 4: Representative curves
-    print("\n[4/5] Figure 4: Representative coherence curves")
+    print("\n[4/6] Figure 4: Representative coherence curves")
     plot_representative_curves(data, output_dir)
     
     # Figure 5: Convergence test
-    print("\n[5/5] Figure 5: Convergence test")
+    print("\n[5/6] Figure 5: Convergence test")
     plot_convergence_test(data, output_dir)
+    
+    # Figure 6: OU Noise Trajectories (fast vs slow)
+    print("\n[6/6] Figure 6: OU Noise Trajectories (fast vs slow)")
+    plot_noise_trajectories(data, output_dir)
     
     print("\n" + "="*80)
     print("✅ All figures generated!")

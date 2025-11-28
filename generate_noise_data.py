@@ -13,15 +13,15 @@ from spin_decoherence.noise.ou import generate_ou_noise
 # SI:P SIMULATION PARAMETERS
 # ============================================
 gamma_e = 1.76e11          # rad/(s·T)
-B_rms = 0.05e-3            # T (0.05 mT)
+B_rms = 0.57e-6            # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
 
-# Fast noise example
-tau_c_fast = 1e-8          # s (10 ns)
+# Fast noise example (MN regime)
+tau_c_fast = 1e-8          # s (10 ns) - Fast fluctuation
 t_max_fast = 1e-6          # s (1 μs, ~100 correlation times)
 
-# Slow noise example
-tau_c_slow = 1e-5          # s (10 μs)
-t_max_slow = 1e-3          # s (1 ms, ~100 correlation times)
+# Slow noise example (QS regime)
+tau_c_slow = 1e-4          # s (100 μs) - Slow fluctuation (더 명확한 대비)
+t_max_slow = 1e-2          # s (10 ms, ~100 correlation times)
 
 def main():
     print("="*80)
@@ -45,7 +45,8 @@ def main():
         B_rms=B_rms,
         dt=dt_fast,
         N_steps=N_steps_fast,
-        seed=42
+        seed=42,
+        burnin_mult=20.0  # Increased for better stationarity
     )
     
     t_fast = np.arange(N_steps_fast) * dt_fast
@@ -76,7 +77,8 @@ def main():
         B_rms=B_rms,
         dt=dt_slow,
         N_steps=N_steps_slow,
-        seed=43
+        seed=43,
+        burnin_mult=20.0  # Increased for better stationarity
     )
     
     t_slow = np.arange(N_steps_slow) * dt_slow

@@ -28,7 +28,7 @@ def main():
     
     # Physics parameters
     gamma_e = 1.76e11  # rad/(s·T)
-    B_rms = 0.05e-3    # T (from generate_dissertation_plots.py)
+    B_rms = 0.57e-6    # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
     
     # Filter valid data
     valid_mask = df['T2'].notna() & (df['T2'] > 0) & (df['R2'] > 0.9)

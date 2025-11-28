@@ -1,0 +1,26 @@
+Systematic Error Budget for MN Slope
+========================================
+
+Measured Slope: -0.9852 ± 0.0086
+Theoretical Slope: -1.0000
+Total Deviation: 1.48%
+
+Error Sources:
+1. Statistical Uncertainty: 0.86%
+   - Finite ensemble size (N_traj = 2000)
+   - Finite data points (N = 5)
+   - Bootstrap resampling variance
+
+2. Systematic Deviation: 0.62%
+   - Crossover regime contamination (~0.5-1.0%)
+   - Numerical discretization (~0.2-0.5%)
+   - Fitting window selection (~0.1-0.3%)
+   - Model selection (~0.1-0.2%)
+
+3. Combined Uncertainty: 1.06%
+   - Root sum of squares (RSS) of all sources
+
+Conclusion:
+  Total deviation (1.48%) is exceeds 
+  combined uncertainty (1.06%).
+  Additional systematic error sources may be present.

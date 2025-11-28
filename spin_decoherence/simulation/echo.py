@@ -59,23 +59,36 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
     if verbose:
         print(f"  Computing Hahn echo: {len(tau_list)} tau values")
     
+    # IMPROVEMENT 1: Echo requires more trajectories for stability
+    # Echo is more sensitive than FID, so use 8-10x more trajectories
+    M_echo = params.get('M_echo', params.get('M', 1000) * 8)  # Default: 8x FID M
+    
+    # IMPROVEMENT 2: Echo requires finer time step for π pulse phase alignment
+    # Smaller dt improves phase evaluation accuracy at τ and 2τ points
+    dt_echo = params.get('dt_echo', params['dt'] / 2)  # Default: half of FID dt
+    
+    if verbose:
+        print(f"  Echo parameters: M={M_echo}, dt={dt_echo*1e9:.2f} ns (FID: M={params['M']}, dt={params['dt']*1e9:.2f} ns)")
+    
     tau_echo, E_echo, E_echo_abs, E_echo_se, E_echo_abs_all = compute_hahn_echo_coherence(
         tau_c=tau_c,
         B_rms=params['B_rms'],
         gamma_e=params['gamma_e'],
-        dt=params['dt'],
+        dt=dt_echo,  # Use echo-specific dt
         tau_list=tau_list,
-        M=params['M'],
+        M=M_echo,  # Use echo-specific M
         seed=params['seed'],
         progress=verbose
     )
     
-    # Fit echo decay
+    # IMPROVEMENT: Enhanced echo decay fitting
+    # Use 'auto' model selection which automatically chooses best model based on data
+    # For echo, we want to ensure proper decay observation window
     fit_result_echo = fit_coherence_decay_with_offset(
         tau_echo, E_echo_abs, E_se=E_echo_se, model='auto',
         is_echo=True,  # CRITICAL: Mark as echo for proper window selection
         tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms'],
-        M=params['M']
+        M=M_echo  # Use echo-specific M for weighted fitting
     )
     
     # Bootstrap CI for echo T2 - IMPROVED
@@ -84,7 +97,7 @@ def run_simulation_with_hahn_echo(tau_c, params=None, tau_list=None, verbose=Tru
         try:
             from spin_decoherence.analysis.bootstrap import bootstrap_T2
             T2_mean, T2_echo_ci, _ = bootstrap_T2(
-                tau_echo, E_echo_abs_all, E_se=E_echo_se, B=500, verbose=False,
+                tau_echo, E_echo_abs_all, E_se=E_echo_se, B=800, verbose=False,  # 물리학적 정확도와 시간 절약의 균형
                 tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms']
             )
         except Exception as e:
@@ -166,7 +179,7 @@ def run_hahn_echo_sweep(params=None, tau_list=None, verbose=True):
             
             if E_echo_abs_all.size > 0:
                 T2_mean, T2_echo_ci, _ = bootstrap_T2(
-                    tau_echo, E_echo_abs_all, E_se=E_echo_se, B=500, verbose=False,
+                    tau_echo, E_echo_abs_all, E_se=E_echo_se, B=800, verbose=False,  # 물리학적 정확도와 시간 절약의 균형
                     tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms']
                 )
                 result['T2_echo_ci'] = T2_echo_ci
@@ -177,7 +190,7 @@ def run_hahn_echo_sweep(params=None, tau_list=None, verbose=True):
                 E_fid_abs_all = np.array(result['E_fid_abs_all'])
                 E_fid_se = np.array(result['E_fid_se'])
                 T2_mean, T2_fid_ci, _ = bootstrap_T2(
-                    t_fid, E_fid_abs_all, E_se=E_fid_se, B=500, verbose=False,
+                    t_fid, E_fid_abs_all, E_se=E_fid_se, B=800, verbose=False,  # 물리학적 정확도와 시간 절약의 균형
                     tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms']
                 )
                 if result.get('fit_result_fid') is not None:

@@ -1,0 +1,24 @@
+Motional Narrowing Regime Fit Results
+========================================
+
+Data Selection:
+  Total points: 60
+  MN regime points (xi < 0.2, strict criterion): 16
+  τc range: 3.00e-09 to 2.04e-08 s
+  ξ range: 2.640e-02 to 1.799e-01
+
+Linear Fit (log-log space):
+  Slope: -0.9777 ± 0.0057
+  Intercept: -13.7131
+  R²: 0.9995
+  p-value: 1.28e-24
+
+Comparison with Theory:
+  Theoretical slope: -1.0000
+  Deviation: 2.23%
+
+Fit Equation:
+  log₁₀(T₂) = -0.9777 × log₁₀(τc) + -13.7131
+  
+  or equivalently:
+  T₂ ∝ τc^-0.9777

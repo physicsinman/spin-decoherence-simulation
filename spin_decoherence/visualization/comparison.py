@@ -228,7 +228,7 @@ def plot_T2_echo_vs_tauc(echo_results, ax=None, show_fid_comparison=True, show_t
         from spin_decoherence.simulation.engine import estimate_characteristic_T2
         params = echo_results[0].get('params', {})
         gamma_e = params.get('gamma_e', 1.76e11)
-        B_rms = params.get('B_rms', 5e-6)
+        B_rms = params.get('B_rms', 0.57e-6)  # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
         
         tau_c_theory = np.logspace(np.log10(tau_c_array.min()), np.log10(tau_c_array.max()), 100) * 1e-6
         T2_theory = [estimate_characteristic_T2(tc, gamma_e, B_rms) for tc in tau_c_theory]

@@ -1,0 +1,15 @@
+OU Noise Validation Results
+======================================================================
+
+FAST Noise:
+  Variance ratio: 1.0000
+  τc fitted: 1.20e-08 ± 3.65e-11 s
+  τc expected: 1.00e-08 s
+  R² (autocorr): 0.9990
+
+SLOW Noise:
+  Variance ratio: 1.0000
+  τc fitted: 7.69e-06 ± 3.45e-08 s
+  τc expected: 1.00e-05 s
+  R² (autocorr): 0.9972
+

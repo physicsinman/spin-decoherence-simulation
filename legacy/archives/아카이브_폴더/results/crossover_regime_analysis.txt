@@ -1,0 +1,31 @@
+Crossover Regime Analysis Results
+========================================
+
+Data Selection:
+  Total points: 60
+  Crossover regime points (0.1 < ξ < 3): 22
+  τc range: 1.23e-08 to 2.57e-07 s
+  ξ range: 0.108 to 2.264
+
+Linear Fit (log-log space):
+  Slope: -0.6954 ± 0.0118
+  Intercept: -11.5259
+  R²: 0.9942
+  p-value: 7.09e-24
+
+Power Law Fit (linear space):
+  T₂ = 1.1671e-12 × τc^-0.7495 ± 0.0163
+  
+  or equivalently:
+  log₁₀(T₂) = -0.6954 × log₁₀(τc) + -11.5259
+
+Physical Interpretation:
+  - Crossover regime: No analytical formula exists
+  - Numerical result: T₂ ∝ τc^-0.6954
+  - Expected behavior: Intermediate between MN (slope = -1) and QS (slope = 0)
+  - Literature: Slope ≈ -0.49 in some models
+
+Comparison:
+  MN regime (ξ < 0.1): T₂ ∝ τc^-1.0 (analytical)
+  Crossover (0.1 < ξ < 3): T₂ ∝ τc^-0.6954 (numerical, no analytical formula)
+  QS regime (ξ > 3): T₂ ≈ constant (analytical)

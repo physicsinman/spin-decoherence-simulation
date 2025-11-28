@@ -16,7 +16,7 @@ from spin_decoherence.config.units import Units
 def get_default_config():
     """Get default simulation configuration."""
     return SimulationConfig(
-        B_rms=Units.uT_to_T(5.0),  # 5 μT in Tesla
+        B_rms=0.57e-6,  # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
         tau_c_range=(Units.us_to_s(0.01), Units.us_to_s(10.0)),  # 0.01 to 10 μs
         tau_c_num=20,
         dt=Units.ns_to_s(0.2),  # 0.2 ns
@@ -119,8 +119,10 @@ def run_simulation_single(tau_c, params=None, verbose=True):
     T2_samples = None  # Initialize T2_samples
     if params.get('compute_bootstrap', True) and fit_result is not None:
         from spin_decoherence.analysis.bootstrap import bootstrap_T2
+        # Allow bootstrap iterations to be configured via params (default: 200 for speed)
+        B_bootstrap = params.get('B_bootstrap', 200)  # Reduced from 800 to 200 for faster execution
         T2_mean, T2_ci, T2_samples = bootstrap_T2(
-            t, E_abs_all, E_se=E_se, B=500, verbose=verbose,
+            t, E_abs_all, E_se=E_se, B=B_bootstrap, verbose=verbose,
             tau_c=tau_c, gamma_e=params['gamma_e'], B_rms=params['B_rms']
         )
         

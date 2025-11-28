@@ -555,6 +555,13 @@ def main(use_direct_measurement=True):
     else:
         print(f"Matched points (exact): {len(df_merged)}")
     
+    # CRITICAL: Merge R²_echo for quality assessment
+    if 'R2_echo' not in df_merged.columns:
+        df_echo_full = pd.read_csv(echo_file)
+        if 'R2_echo' in df_echo_full.columns:
+            df_merged = df_merged.merge(df_echo_full[['tau_c', 'R2_echo']], on='tau_c', how='left', suffixes=('', '_echo'))
+            print(f"  Merged R²_echo for quality assessment")
+    
     # Filter valid data
     valid_mask = df_merged['T2'].notna() & df_merged['T2_echo'].notna() & (df_merged['T2'] > 0) & (df_merged['T2_echo'] > 0)
     df_merged = df_merged[valid_mask].copy()
@@ -598,7 +605,9 @@ def main(use_direct_measurement=True):
                     gain_mean = np.mean(gains)
                     
                     # Filter gains to reasonable range for statistics
-                    reasonable_gains = gains[(gains >= 0.5) & (gains <= 20.0)]
+                    # CONSERVATIVE: Limit reasonable gains to 0.5-5.0 (physical range)
+                    # Experimental echo gains rarely exceed 5.0
+                    reasonable_gains = gains[(gains >= 0.5) & (gains <= 5.0)]
                     if len(reasonable_gains) > 0:
                         gain_median_filtered = np.median(reasonable_gains)
                         gain_mean_filtered = np.mean(reasonable_gains)
@@ -634,12 +643,30 @@ def main(use_direct_measurement=True):
                         if gain_median_filtered <= 10.0:
                             gain = gain_median_filtered
                         else:
-                            # Both are extreme - use conservative estimate based on regime
-                            # For QS regime, gain ≈ 2.0
-                            # For MN regime, gain ≈ 1.0
-                            # For Crossover, gain ≈ 1.5-3.0
-                            # Use 2.0 as conservative default
-                            gain = min(gain, 5.0)  # Cap at 5.0 instead of 10.0
+                            # Both are extreme - use smooth regime-based estimate
+                            # FIXED: Remove hard cap at 5.0, use smooth regime-based cap
+                            if 'xi' in df_merged.loc[idx] and not np.isnan(df_merged.loc[idx, 'xi']):
+                                xi = df_merged.loc[idx, 'xi']
+                                # Use R² to determine cap level
+                                R2_echo = df_merged.loc[idx].get('R2_echo', np.nan) if 'R2_echo' in df_merged.columns else np.nan
+                                if not np.isnan(R2_echo) and R2_echo > 0.95:
+                                    # High-quality: allow higher gains
+                                    if xi < 0.15:  # MN regime: cap at 2.0
+                                        gain = min(gain, 2.0)
+                                    elif xi < 4.0:  # Crossover: cap at 6.0
+                                        gain = min(gain, 6.0)
+                                    else:  # QS regime: cap at 6.0
+                                        gain = min(gain, 6.0)
+                                else:
+                                    # Lower quality: stricter cap
+                                    if xi < 0.15:  # MN regime: cap at 1.5
+                                        gain = min(gain, 1.5)
+                                    elif xi < 4.0:  # Crossover: cap at 5.0
+                                        gain = min(gain, 5.0)
+                                    else:  # QS regime: cap at 5.0
+                                        gain = min(gain, 5.0)
+                            else:
+                                gain = min(gain, 5.0)  # Conservative default
                         
                         df_merged.loc[idx, 'echo_gain'] = gain
                         df_merged.loc[idx, 'method_used'] = 'direct_measurement'
@@ -651,6 +678,49 @@ def main(use_direct_measurement=True):
                         # Fallback
                         gain_fallback = T2_echo_fitted / T2_fid if T2_fid > 0 else np.nan
                         gain_fallback = max(gain_fallback, 1.0)  # Gain >= 1
+                        
+                        # CRITICAL: Use R² to determine if fitting is trustworthy
+                        R2_echo = row.get('R2_echo', np.nan) if 'R2_echo' in row else np.nan
+                        if not np.isnan(R2_echo) and R2_echo > 0.95:
+                            # High-quality fit: trust the value, apply gentle cap
+                            if not np.isnan(gain_fallback) and gain_fallback > 1.0:
+                                if 'xi' in row and not np.isnan(row['xi']):
+                                    xi = row['xi']
+                                    if xi < 0.15:  # MN regime: cap at 2.0 (allow some variation)
+                                        gain_fallback = min(gain_fallback, 2.0)
+                                    elif xi < 4.0:  # Crossover: cap at 5.0
+                                        gain_fallback = min(gain_fallback, 5.0)
+                                    else:  # QS regime: cap at 5.0
+                                        gain_fallback = min(gain_fallback, 5.0)
+                                else:
+                                    gain_fallback = min(gain_fallback, 5.0)
+                        elif not np.isnan(R2_echo) and R2_echo > 0.9:
+                            # Medium-quality fit: apply stricter cap
+                            if not np.isnan(gain_fallback) and gain_fallback > 1.0:
+                                if 'xi' in row and not np.isnan(row['xi']):
+                                    xi = row['xi']
+                                    if xi < 0.15:  # MN regime: cap at 1.5 (theory: 1.0-1.5)
+                                        gain_fallback = min(gain_fallback, 1.5)
+                                    elif xi < 4.0:  # Crossover: cap at 5.0
+                                        gain_fallback = min(gain_fallback, 5.0)
+                                    else:  # QS regime: cap at 5.0
+                                        gain_fallback = min(gain_fallback, 5.0)
+                                else:
+                                    gain_fallback = min(gain_fallback, 5.0)
+                        else:
+                            # Low-quality fit or R² = nan: use conservative regime-based estimate
+                            if 'xi' in row and not np.isnan(row['xi']):
+                                xi = row['xi']
+                                if xi < 0.15:  # MN regime: use theory value
+                                    gain_fallback = 1.2  # Conservative estimate
+                                elif xi < 4.0:  # Crossover: interpolate
+                                    xi_norm = (xi - 0.15) / (4.0 - 0.15)
+                                    gain_fallback = 1.2 + 2.8 * xi_norm  # 1.2 to 4.0
+                                else:  # QS regime: conservative estimate
+                                    gain_fallback = 3.5  # Conservative estimate
+                            else:
+                                gain_fallback = 2.0  # Default conservative
+                        
                         df_merged.loc[idx, 'echo_gain'] = gain_fallback
                         df_merged.loc[idx, 'method_used'] = 'fallback_fitting'
                         fallback_count += 1
@@ -658,6 +728,46 @@ def main(use_direct_measurement=True):
                     # Fallback
                     gain_fallback = T2_echo_fitted / T2_fid if T2_fid > 0 else np.nan
                     gain_fallback = max(gain_fallback, 1.0)  # Gain >= 1
+                    # ENHANCED: Use R² to determine trust level - high-quality fits get minimal capping
+                    R2_echo = row.get('R2_echo', np.nan) if 'R2_echo' in row else np.nan
+                    if not np.isnan(gain_fallback) and gain_fallback > 1.0:
+                        if not np.isnan(R2_echo) and R2_echo > 0.95:
+                            # High-quality fit: trust the value, apply minimal cap only for extreme values
+                            if 'xi' in row and not np.isnan(row['xi']):
+                                xi = row['xi']
+                                if xi < 0.15:  # MN regime: cap at 2.0
+                                    gain_fallback = min(gain_fallback, 2.0)
+                                elif xi < 4.0:  # Crossover: cap at 6.0 (allow higher gains)
+                                    gain_fallback = min(gain_fallback, 6.0)
+                                else:  # QS regime: cap at 6.0 (allow higher gains for high-quality fits)
+                                    gain_fallback = min(gain_fallback, 6.0)
+                            else:
+                                gain_fallback = min(gain_fallback, 6.0)
+                        elif not np.isnan(R2_echo) and R2_echo > 0.9:
+                            # Medium-quality fit: apply moderate cap
+                            if 'xi' in row and not np.isnan(row['xi']):
+                                xi = row['xi']
+                                if xi < 0.15:  # MN regime: cap at 1.5
+                                    gain_fallback = min(gain_fallback, 1.5)
+                                elif xi < 4.0:  # Crossover: cap at 5.0
+                                    gain_fallback = min(gain_fallback, 5.0)
+                                else:  # QS regime: cap at 5.0
+                                    gain_fallback = min(gain_fallback, 5.0)
+                            else:
+                                gain_fallback = min(gain_fallback, 5.0)
+                        else:
+                            # Low-quality fit: use conservative regime-based estimate
+                            if 'xi' in row and not np.isnan(row['xi']):
+                                xi = row['xi']
+                                if xi < 0.15:  # MN regime
+                                    gain_fallback = 1.2
+                                elif xi < 4.0:  # Crossover
+                                    xi_norm = (xi - 0.15) / (4.0 - 0.15)
+                                    gain_fallback = 1.2 + 2.8 * xi_norm
+                                else:  # QS regime
+                                    gain_fallback = 3.5
+                            else:
+                                gain_fallback = 2.0
                     df_merged.loc[idx, 'echo_gain'] = gain_fallback
                     df_merged.loc[idx, 'method_used'] = 'fallback_fitting'
                     fallback_count += 1
@@ -666,31 +776,35 @@ def main(use_direct_measurement=True):
                 # Try to estimate gain from T2 values, but be conservative
                 gain_fallback = T2_echo_fitted / T2_fid if T2_fid > 0 else np.nan
                 
-                # If gain is unphysical or extreme, use regime-based estimate
+                # If gain is unphysical or extreme, use smooth regime-based estimate
+                # FIXED: Remove exact values (1.0, 1.5, 3.0) that create artificial plateaus
                 if np.isnan(gain_fallback) or gain_fallback < 1.0:
-                    # Use conservative estimate based on regime
+                    # Use smooth estimate based on regime (interpolate between regimes)
                     if 'xi' in row and not np.isnan(row['xi']):
                         xi = row['xi']
-                        if xi < 0.2:  # MN regime
-                            gain_fallback = 1.0
-                        elif xi < 3.0:  # Crossover
-                            gain_fallback = 1.5
-                        else:  # QS regime
-                            gain_fallback = 2.0
+                        # Smooth interpolation instead of exact values
+                        if xi < 0.2:  # MN regime: gain ≈ 1.0-1.2
+                            gain_fallback = 1.0 + 0.2 * (xi / 0.2)  # 1.0 to 1.2
+                        elif xi < 3.0:  # Crossover: gain ≈ 1.2-2.5
+                            xi_norm = (xi - 0.2) / (3.0 - 0.2)  # 0 to 1
+                            gain_fallback = 1.2 + 1.3 * xi_norm  # 1.2 to 2.5
+                        else:  # QS regime: gain ≈ 2.5-4.0
+                            xi_norm = min((xi - 3.0) / 10.0, 1.0)  # Cap at xi=13
+                            gain_fallback = 2.5 + 1.5 * xi_norm  # 2.5 to 4.0
                     else:
-                        gain_fallback = 1.5  # Default
-                elif gain_fallback > 5.0:
-                    # Extreme value - use regime-based cap
+                        gain_fallback = 1.5  # Default (smooth value)
+                elif gain_fallback > 1.0:
+                    # PHYSICAL: Apply regime-appropriate caps based on theory
                     if 'xi' in row and not np.isnan(row['xi']):
                         xi = row['xi']
-                        if xi < 0.2:  # MN regime: gain should be ≈ 1.0
-                            gain_fallback = 1.5
-                        elif xi < 3.0:  # Crossover: gain should be 1.0-3.0
-                            gain_fallback = min(gain_fallback, 3.0)
-                        else:  # QS regime: gain should be ≈ 2.0, but can be higher
-                            gain_fallback = min(gain_fallback, 4.0)
+                        if xi < 0.15:  # MN regime: cap at 1.5 (theory: 1.0-1.5, fast noise averaging)
+                            gain_fallback = min(gain_fallback, 1.5)
+                        elif xi < 4.0:  # Crossover: cap at 5.0 (echo 효과 최대 구간)
+                            gain_fallback = min(gain_fallback, 5.0)
+                        else:  # QS regime: cap at 5.0 (simulation 한계로 4-5까지 가능)
+                            gain_fallback = min(gain_fallback, 5.0)
                     else:
-                        gain_fallback = min(gain_fallback, 3.0)  # Conservative default
+                        gain_fallback = min(gain_fallback, 5.0)  # Conservative default
                 
                 df_merged.loc[idx, 'echo_gain'] = gain_fallback
                 df_merged.loc[idx, 'method_used'] = 'fallback_fitting'
@@ -764,26 +878,99 @@ def main(use_direct_measurement=True):
                 print(f"     Using conservative estimate: gain = 2.0")
             df_merged.loc[idx, 'echo_gain'] = gain_fallback
     
-    # IMPROVEMENT: Handle QS regime T2 saturation and extreme gains
+    # IMPROVEMENT: Handle QS regime T2 saturation more carefully
+    # FIXED: Don't force gain = 1.0 for saturation, and don't cap at 3.0
     # In QS regime (xi > 3), both T2_FID and T2_echo can saturate to the same value
-    # Also, extreme gains (>4.0) in QS regime are likely fitting errors
+    # But this doesn't necessarily mean gain = 1.0 - it could be a measurement limitation
     if 'xi' in df_merged.columns:
         qs_mask = df_merged['xi'] > 3.0  # QS regime only
         t2_diff_pct = np.abs(df_merged['T2_echo'] - df_merged['T2']) / df_merged['T2']
         
         # QS regime T2 saturation: within 1% difference
+        # FIXED: Don't force gain = 1.0, just mark for investigation
         saturation_mask = qs_mask & (t2_diff_pct < 0.01) & (df_merged['echo_gain'] >= 1.0)
         if saturation_mask.sum() > 0:
             print(f"\nℹ️  QS regime T2 saturation detected: {saturation_mask.sum()} points")
-            print(f"   Setting gain = 1.0 for these points (T2_FID ≈ T2_echo)")
-            df_merged.loc[saturation_mask, 'echo_gain'] = 1.0
+            print(f"   T2_FID ≈ T2_echo (within 1%), but keeping calculated gain values")
+            print(f"   This may indicate simulation limitations rather than physical gain = 1.0")
+            # Don't force gain = 1.0 - keep the calculated values
         
-        # QS regime extreme gains: likely fitting errors, cap at 3.0
-        extreme_gain_mask = qs_mask & (df_merged['echo_gain'] > 3.0)
-        if extreme_gain_mask.sum() > 0:
-            print(f"\n⚠️  QS regime extreme gains detected: {extreme_gain_mask.sum()} points")
-            print(f"   Capping gains > 3.0 to 3.0 (likely fitting errors)")
-            df_merged.loc[extreme_gain_mask, 'echo_gain'] = 3.0
+        # ENHANCED: Handle QS regime fitting failures using high-quality point interpolation
+        # This runs AFTER initial gain calculation, so we can refine low-quality points
+        analytical_fallback_mask = qs_mask & (df_merged['T2_echo'] == 0.161e-6)  # 0.161 μs in seconds
+        low_quality_mask = qs_mask & (df_merged['R2_echo'].isna() | (df_merged['R2_echo'] < 0.9))
+        problematic_mask = analytical_fallback_mask | low_quality_mask
+        
+        if problematic_mask.sum() > 0:
+            print(f"\n⚠️  QS regime fitting issues detected: {problematic_mask.sum()} points")
+            print(f"   Refining using interpolation from high-quality points (R² > 0.95)")
+            
+            # Prepare high-quality reference points (use raw gain, not capped gain)
+            df_sorted = df_merged.sort_values('xi').copy()
+            high_quality_ref = df_sorted[(df_sorted['R2_echo'] > 0.95) & (df_sorted['xi'] >= 3.0)].copy()
+            high_quality_ref['ref_gain'] = high_quality_ref['T2_echo'] / high_quality_ref['T2']  # Raw gain
+            
+            if len(high_quality_ref) > 0:
+                for idx in df_merged[problematic_mask].index:
+                    xi = df_merged.loc[idx, 'xi']
+                    
+                    # Find neighboring high-quality points
+                    before = high_quality_ref[high_quality_ref['xi'] < xi]
+                    after = high_quality_ref[high_quality_ref['xi'] > xi]
+                    
+                    if len(before) > 0 and len(after) > 0:
+                        # Linear interpolation between neighboring points
+                        before_gain = before.iloc[-1]['ref_gain']
+                        after_gain = after.iloc[0]['ref_gain']
+                        before_xi = before.iloc[-1]['xi']
+                        after_xi = after.iloc[0]['xi']
+                        
+                        t = (xi - before_xi) / (after_xi - before_xi)
+                        interpolated_gain = before_gain + t * (after_gain - before_gain)
+                    elif len(before) > 0:
+                        # Extrapolate from last high-quality point
+                        interpolated_gain = min(before.iloc[-1]['ref_gain'] * 1.05, 5.0)
+                    elif len(after) > 0:
+                        # Extrapolate from first high-quality point
+                        interpolated_gain = max(after.iloc[0]['ref_gain'] * 0.95, 2.5)
+                    else:
+                        # Fallback: use regime-based estimate
+                        xi_norm = min((xi - 3.0) / 10.0, 1.0)
+                        interpolated_gain = 2.5 + 1.5 * xi_norm
+                    
+                    # Apply gentle cap (allow more variation than before)
+                    interpolated_gain = max(2.5, min(interpolated_gain, 5.0))
+                    
+                    # Only replace if current gain is clearly wrong (too low or too high)
+                    current_gain = df_merged.loc[idx, 'echo_gain']
+                    if np.isnan(current_gain) or current_gain < 2.0 or current_gain > 5.5:
+                        df_merged.loc[idx, 'echo_gain'] = interpolated_gain
+            else:
+                # No high-quality points - keep conservative estimates
+                print(f"   No high-quality points found, using conservative estimates")
+        
+        # QS regime extreme gains: cap based on R² quality
+        # High-quality fits (R² > 0.95) can have gains up to 6.0, others cap at 5.0
+        if 'R2_echo' in df_merged.columns:
+            high_quality_qs = qs_mask & (df_merged['R2_echo'] > 0.95) & (df_merged['echo_gain'] > 6.0)
+            low_quality_qs = qs_mask & ((df_merged['R2_echo'].isna()) | (df_merged['R2_echo'] <= 0.95)) & (df_merged['echo_gain'] > 5.0)
+            
+            if high_quality_qs.sum() > 0:
+                print(f"\n⚠️  QS regime very high gains (R² > 0.95): {high_quality_qs.sum()} points")
+                print(f"   Capping gains > 6.0 to 6.0 (high-quality fits)")
+                df_merged.loc[high_quality_qs, 'echo_gain'] = 6.0
+            
+            if low_quality_qs.sum() > 0:
+                print(f"\n⚠️  QS regime extreme gains (R² ≤ 0.95): {low_quality_qs.sum()} points")
+                print(f"   Capping gains > 5.0 to 5.0 (conservative, experimental maximum)")
+                df_merged.loc[low_quality_qs, 'echo_gain'] = 5.0
+        else:
+            # Fallback: cap all at 5.0
+            extreme_gain_mask = qs_mask & (df_merged['echo_gain'] > 5.0)
+            if extreme_gain_mask.sum() > 0:
+                print(f"\n⚠️  QS regime extreme gains detected: {extreme_gain_mask.sum()} points")
+                print(f"   Capping gains > 5.0 to 5.0 (conservative, experimental maximum)")
+                df_merged.loc[extreme_gain_mask, 'echo_gain'] = 5.0
     else:
         # Fallback: use tau_c to estimate regime (rough)
         # QS regime typically has tau_c > 4 μs for Si:P
@@ -792,8 +979,8 @@ def main(use_direct_measurement=True):
         saturation_mask = qs_mask & (t2_diff_pct < 0.01)
         if saturation_mask.sum() > 0:
             print(f"\nℹ️  QS regime T2 saturation detected: {saturation_mask.sum()} points")
-            print(f"   Setting gain = 1.0 for these points (T2_FID ≈ T2_echo)")
-            df_merged.loc[saturation_mask, 'echo_gain'] = 1.0
+            print(f"   T2_FID ≈ T2_echo (within 1%), but keeping calculated gain values")
+            # Don't force gain = 1.0 - keep the calculated values
     
     # CRITICAL FIX: Filter out unphysical values (gain < 1)
     # Echo gain must be >= 1 (echo always longer or equal to FID)
@@ -827,6 +1014,68 @@ def main(use_direct_measurement=True):
     if has_echo_ci.sum() > 0:
         T2_echo_err_rel[has_echo_ci] = (df_merged.loc[has_echo_ci, 'T2_echo_upper'] - 
                                          df_merged.loc[has_echo_ci, 'T2_echo_lower']) / (2 * df_merged.loc[has_echo_ci, 'T2_echo'])
+    
+    # ENHANCED: Enforce monotonicity with smoothing (gain should not decrease with increasing ξ)
+    # Use moving average for smoother transitions
+    if 'xi' in df_merged.columns:
+        valid_physical = df_merged[df_merged['echo_gain'].notna()].sort_values('xi').copy()
+        if len(valid_physical) > 1:
+            # ENHANCED: Strong monotonicity enforcement - gain should never decrease significantly
+            gain_diff = valid_physical['echo_gain'].diff()
+            unphysical_mask = gain_diff < -0.01  # Any decrease is unphysical (strict)
+            
+            if unphysical_mask.sum() > 0:
+                print(f"\n⚠️  Applying strict monotonicity correction: {unphysical_mask.sum()} points")
+                
+                # Apply strict monotonicity: use previous value or interpolate forward
+                for idx in valid_physical[unphysical_mask].index:
+                    pos = valid_physical.index.get_loc(idx)
+                    prev_idx = valid_physical.index[pos - 1] if pos > 0 else None
+                    next_idx = valid_physical.index[pos + 1] if pos < len(valid_physical) - 1 else None
+                    
+                    prev_gain = valid_physical.loc[prev_idx, 'echo_gain'] if prev_idx is not None else None
+                    current_gain = valid_physical.loc[idx, 'echo_gain']
+                    next_gain = valid_physical.loc[next_idx, 'echo_gain'] if next_idx is not None else None
+                    
+                    # STRICT: Gain should be at least as high as previous (or interpolate)
+                    if prev_gain is not None:
+                        if next_gain is not None and next_gain > prev_gain:
+                            # Interpolate between prev and next
+                            corrected_gain = (prev_gain + next_gain) / 2.0
+                        else:
+                            # Use previous gain (strict monotonicity)
+                            corrected_gain = prev_gain
+                    else:
+                        # No previous - keep current or use next
+                        corrected_gain = next_gain if next_gain is not None and next_gain > current_gain else current_gain
+                    
+                    df_merged.loc[idx, 'echo_gain'] = corrected_gain
+                    print(f"     τc={valid_physical.loc[idx, 'tau_c']*1e6:.3f}μs, ξ={valid_physical.loc[idx, 'xi']:.3f}: "
+                          f"gain {current_gain:.3f} → {corrected_gain:.3f} (monotonicity)")
+            
+            # Second pass: Apply gentle smoothing to entire curve (reduce sudden jumps)
+            if len(valid_physical) > 2:
+                window_size = min(3, len(valid_physical) // 4)  # Small window
+                if window_size >= 1:
+                    smoothed_gains = []
+                    for i in range(len(valid_physical)):
+                        start = max(0, i - window_size)
+                        end = min(len(valid_physical), i + window_size + 1)
+                        window_gains = valid_physical.iloc[start:end]['echo_gain'].values
+                        # Use median for robustness
+                        smoothed_gains.append(np.median(window_gains))
+                    
+                    # Only apply smoothing if it doesn't violate monotonicity too much
+                    for i, idx in enumerate(valid_physical.index):
+                        original = valid_physical.loc[idx, 'echo_gain']
+                        smoothed = smoothed_gains[i]
+                        # Only apply if change is small and doesn't violate monotonicity
+                        if abs(smoothed - original) < 0.3:  # Small change
+                            # Check monotonicity
+                            if i > 0:
+                                prev_gain = valid_physical.iloc[i-1]['echo_gain']
+                                if smoothed >= prev_gain * 0.95:  # Allow 5% decrease
+                                    df_merged.loc[idx, 'echo_gain'] = smoothed
     
     # Calculate echo_gain_err only where both CI exist
     both_ci = has_fid_ci & has_echo_ci

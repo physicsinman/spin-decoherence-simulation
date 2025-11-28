@@ -1,0 +1,11 @@
+IMPROVED Convergence Test Summary
+================================================================================
+
+1. N_traj Convergence Test
+--------------------------------------------------------------------------------
+
+τc = 20000.0 ns:
+  Converged: True
+  Max deviation: 5.99%
+  Final T₂: 98936.746 μs
+  ✅ Conclusion: N=2000 is sufficient

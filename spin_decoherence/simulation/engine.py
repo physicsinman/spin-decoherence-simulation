@@ -109,7 +109,10 @@ def get_dimensionless_tau_range(tau_c, n_points=28, upsilon_min=0.05, upsilon_ma
     if dt is not None:
         tau_min = max(tau_min, 10.0 * dt)
     if T_max is not None:
-        tau_max = min(tau_max, 0.4 * T_max)  # 2*tau_max <= 0.8*T_max
+        # CRITICAL FIX: Hahn echo is measured at time 2*tau
+        # So we need 2*tau_max <= T_max, i.e., tau_max <= T_max/2
+        # Previous limit of 0.4*T_max was too restrictive
+        tau_max = min(tau_max, 0.5 * T_max)  # 2*tau_max <= T_max
     
     if tau_max <= tau_min:
         tau_max = tau_min * 1.5
@@ -149,7 +152,7 @@ def get_optimal_tau_range(tau_c, n_points=30, factor_min=0.1, factor_max=10,
         from spin_decoherence.config.simulation import SimulationConfig
         from spin_decoherence.config.units import Units
         default_config = SimulationConfig(
-            B_rms=Units.uT_to_T(5.0),
+            B_rms=0.57e-6,  # T (0.57 μT) - Physical value for 800 ppm ²⁹Si concentration
             tau_c_range=(Units.us_to_s(0.01), Units.us_to_s(10.0)),
         )
         if dt is None:

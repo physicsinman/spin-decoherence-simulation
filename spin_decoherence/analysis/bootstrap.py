@@ -13,7 +13,7 @@ from spin_decoherence.analysis.fitting import (
 )
 
 
-def bootstrap_T2(t, E_abs_all, E_se=None, B=500, rng=None, verbose=False,
+def bootstrap_T2(t, E_abs_all, E_se=None, B=800, rng=None, verbose=False,  # 물리학적 정확도와 시간 절약의 균형
                  tau_c=None, gamma_e=None, B_rms=None):
     """
     Bootstrap resampling to estimate T_2 confidence intervals.
